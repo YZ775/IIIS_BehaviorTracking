@@ -37,15 +37,19 @@ def main():
     while(cap.isOpened()):
         # フレーム間差分を計算
         mask = frame_sub(frame1, frame2, frame3, th=10)
+        area = cv2.countNonZero(mask)
+        """
         #輪郭検出
         image, contours, hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         cnt = contours[0]
 
         #マスクの面積計算
         area = cv2.contourArea(cnt)
+        """
+        #print(area)
 
         #面積が閾値より大きければ、重心の座標を更新
-        if area > 5:
+        if area > 600:
             mu = cv2.moments(mask, False)
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
