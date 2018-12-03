@@ -23,7 +23,9 @@ def frame_sub(img1, img2, img3, th):
 
 def main():
     # カメラのキャプチャ
-    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture(0)
+    #動画読み込み 動画の名前
+    cap = cv2.VideoCapture("2.mov")
 
     # フレームを3枚取得してグレースケール変換
     frame1 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
@@ -55,13 +57,13 @@ def main():
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
                 before_x = x
                 before_y = y
-                cv2.circle(mask, (x,y), 20, (255,255,255),-1)
+                cv2.circle(mask, (x,y), 8, (255,255,255),-1)
             except:
                 print(" ")
 
         #面積が閾値より小さければ、前回の座標を表示
         else :
-            cv2.circle(mask, (before_x,before_y), 20, (255,255,255),-1)
+            cv2.circle(mask, (before_x,before_y), 8, (255,255,255),-1)
 
 
         # 結果を表示
