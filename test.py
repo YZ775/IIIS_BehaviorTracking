@@ -3,6 +3,26 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
+import threading
+
+sleepcnt = 0
+ContinueFlag = 1
+
+def IsSleep():
+    global sleepcnt
+    global ContinueFlag
+    
+    if(ContinueFlag == 0):
+        #t.cancel()
+        return 1
+    if(flag_old == 1 and flag_new == 1):
+        sleepcnt = sleepcnt + 1
+        print(sleepcnt)
+    if(ContinueFlag == 1):
+        t=threading.Timer(0.1,IsSleep)
+        t.start()
+
+
 
 # フレーム差分の計算
 def frame_sub(img1, img2, img3, th):
@@ -22,9 +42,28 @@ def frame_sub(img1, img2, img3, th):
 
     return  mask
 
+#####################################
+#前回の座標値を記憶する変数
+before_x = 0
+before_y = 0
+x = 0
+y = 0
+flag_old = 0
+flag_new = 0
 
 
 def main():
+    
+    global before_x
+    global before_y
+    global x
+    global y
+    global flag_old
+    global flag_new
+    global sleepcnt
+    global ContinueFlag
+
+
     todaydetail = datetime.datetime.today()
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
     filename= "MousePos_" + todaydetail + ".txt"
@@ -61,9 +100,6 @@ def main():
 
 
 
-    #前回の座標値を記憶する変数
-    before_x = 0
-    before_y = 0
 
     cnt = 0
     frame_number = 0
@@ -84,7 +120,11 @@ def main():
         #print(area)
         showframe = frame2.copy()
 
+        if(sleepcnt > 10): #寝てたら
+            _ = 0 #処理
+        
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
+            sleepcnt = 0 #眠ってるカウントをリセット
             mu = cv2.moments(mask, False)
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
@@ -104,6 +144,11 @@ def main():
                 f.write(",")
                 f.write(str(y))
                 f.write("\n")
+                
+                flag_old = flag_new
+                flag_new = 0
+
+                print(flag_old,flag_new)
 
 
             except:
@@ -123,6 +168,9 @@ def main():
             f.write(",")
             f.write(str(before_y))
             f.write("\n")
+            flag_old = flag_new
+            flag_new = 1
+            print(flag_old,flag_new)
 
 
         # 結果を表示
@@ -143,6 +191,8 @@ def main():
 
         cnt = cnt+1
     f.close()
+    ContinueFlag = 0
+    #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
     plt.show()
@@ -150,4 +200,6 @@ def main():
 
 
 if __name__ == '__main__':
+    t=threading.Thread(target = IsSleep)
+    t.start()
     main()
