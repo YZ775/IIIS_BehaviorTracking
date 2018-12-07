@@ -29,12 +29,19 @@ def main():
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
     filename= "MousePos_" + todaydetail + ".txt"
     f = open(filename,'w')
+    f.write("FrameNumber")
+    f.write(" | ")
+    f.write("Time")
+    f.write(" | ")
+    f.write("(X,Y)")
+    f.write("\n")
+
     print("select Source")
     select = input("0:from camera\n1:from video\n>> ")
 
     if(select == "0"):
         cap = cv2.VideoCapture(0)  # カメラのキャプチャ
-    
+
     if(select == "1"):
         p = input("enter video path\n>> ")
         cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
@@ -50,16 +57,19 @@ def main():
         plt.plot(w,-1*h,'w',marker='.') ##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
     except:
         _ = 0
-    
-    
-   
+
+
+
 
     #前回の座標値を記憶する変数
     before_x = 0
     before_y = 0
 
     cnt = 0
+    frame_number = 0
     while(cap.isOpened()):
+        time_stamp = datetime.datetime.now()
+        frame_number += 1
         # フレーム間差分を計算
         mask = frame_sub(frame1, frame2, frame3, th=10)
         area = cv2.countNonZero(mask)
@@ -73,7 +83,7 @@ def main():
         """
         #print(area)
         showframe = frame2.copy()
-        
+
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             mu = cv2.moments(mask, False)
             try:
@@ -83,7 +93,13 @@ def main():
                 before_x = x
                 before_y = y
                 cv2.circle(showframe, (x,y), 3, (255,255,0),-1)
-                
+                f.write(str(frame_number))
+                f.write(" | ")
+                if (select == "1"):
+                    f.write("null")
+                else :
+                    f.write(str(time_stamp))
+                f.write(" | ")
                 f.write(str(x))
                 f.write(",")
                 f.write(str(y))
@@ -95,6 +111,14 @@ def main():
 
         else :   #面積が閾値より小さければ、前回の座標を表示
             cv2.circle(showframe, (before_x,before_y), 3, (255,255,0),-1)
+            f.write(str(frame_number))
+            f.write(" | ")
+            if (select == "1"):
+                f.write("null")
+
+            else:
+                f.write(str(time_stamp))
+            f.write(" | ")
             f.write(str(before_x))
             f.write(",")
             f.write(str(before_y))
