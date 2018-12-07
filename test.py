@@ -5,20 +5,19 @@ import matplotlib.pyplot as plt
 import datetime
 import threading
 
-sleepcnt = 0
-ContinueFlag = 1
+sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
+ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 
 def IsSleep():
     global sleepcnt
     global ContinueFlag
     
-    if(ContinueFlag == 0):
-        #t.cancel()
+    if(ContinueFlag == 0): #割り込み終了
         return 1
-    if(flag_old == 1 and flag_new == 1):
+    if(flag_old == 1 and flag_new == 1): #前回動いてなくて今回も動いてない場合 カウントプラス
         sleepcnt = sleepcnt + 1
         print(sleepcnt)
-    if(ContinueFlag == 1):
+    if(ContinueFlag == 1): #割り込みを続ける
         t=threading.Timer(0.1,IsSleep)
         t.start()
 
@@ -54,7 +53,7 @@ flag_new = 0
 
 def main():
     
-    global before_x
+    global before_x #グローバル変数であることを宣言
     global before_y
     global x
     global y
@@ -67,12 +66,16 @@ def main():
     todaydetail = datetime.datetime.today()
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
     filename= "MousePos_" + todaydetail + ".txt"
-    f = open(filename,'w')
+    f = open(filename,'w') #データ保存用ファイル
+    
+    f.write("#")
     f.write("FrameNumber")
     f.write(" | ")
     f.write("Time")
     f.write(" | ")
     f.write("(X,Y)")
+    f.write(" | ")
+    f.write("wake/sleep")
     f.write("\n")
 
     print("select Source")
@@ -101,7 +104,6 @@ def main():
 
 
 
-    cnt = 0
     frame_number = 0
     while(cap.isOpened()):
         time_stamp = datetime.datetime.now()
@@ -120,22 +122,22 @@ def main():
         #print(area)
         showframe = frame2.copy()
 
-        if(sleepcnt > 10): #寝てたら
-            _ = 0 #処理
+        if(sleepcnt == 10): #寝たら
+            plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
         
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
             mu = cv2.moments(mask, False)
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
-                plt.plot(x,-1*y,'r',marker='.',markersize=3)
-                plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5)
+                plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
+                plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
                 before_x = x
                 before_y = y
                 cv2.circle(showframe, (x,y), 3, (255,255,0),-1)
                 f.write(str(frame_number))
                 f.write(" | ")
-                if (select == "1"):
+                if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
                     f.write("null")
                 else :
                     f.write(str(time_stamp))
@@ -143,11 +145,12 @@ def main():
                 f.write(str(x))
                 f.write(",")
                 f.write(str(y))
+                f.write(" | ")
+                f.write("wake")                
                 f.write("\n")
                 
-                flag_old = flag_new
+                flag_old = flag_new #動いてるかどうかフラグ更新
                 flag_new = 0
-
                 print(flag_old,flag_new)
 
 
@@ -158,17 +161,25 @@ def main():
             cv2.circle(showframe, (before_x,before_y), 3, (255,255,0),-1)
             f.write(str(frame_number))
             f.write(" | ")
-            if (select == "1"):
+            if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
                 f.write("null")
 
             else:
                 f.write(str(time_stamp))
+            
             f.write(" | ")
             f.write(str(before_x))
             f.write(",")
             f.write(str(before_y))
+            f.write(" | ")
+            if(sleepcnt >= 10): #寝てたら
+                f.write("sleep")
+            else:
+                f.write("wake")
+            
             f.write("\n")
-            flag_old = flag_new
+
+            flag_old = flag_new #動いてるかどうかフラグ更新
             flag_new = 1
             print(flag_old,flag_new)
 
@@ -189,7 +200,6 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        cnt = cnt+1
     f.close()
     ContinueFlag = 0
     #t.cancel()
