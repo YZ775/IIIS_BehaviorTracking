@@ -2,6 +2,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
 
 # フレーム差分の計算
 def frame_sub(img1, img2, img3, th):
@@ -22,7 +23,12 @@ def frame_sub(img1, img2, img3, th):
     return  mask
 
 
+
 def main():
+    todaydetail = datetime.datetime.today()
+    todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
+    filename= "MousePos_" + todaydetail + ".txt"
+    f = open(filename,'w')
     print("select Source")
     select = input("0:from camera\n1:from video\n>> ")
 
@@ -41,7 +47,7 @@ def main():
         frame2 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
         frame3 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
         h, w = frame1.shape
-        plt.plot(w,-1*h,marker='.')
+        plt.plot(w,-1*h,'w',marker='.') ##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
     except:
         _ = 0
     
@@ -66,7 +72,7 @@ def main():
         area = cv2.contourArea(cnt)
         """
         #print(area)
-
+        showframe = frame2.copy()
         
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             mu = cv2.moments(mask, False)
@@ -76,18 +82,28 @@ def main():
                 plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5)
                 before_x = x
                 before_y = y
-                cv2.circle(mask, (x,y), 8, (255,255,255),-1)
+                cv2.circle(showframe, (x,y), 3, (255,255,0),-1)
+                
+                f.write(str(x))
+                f.write(",")
+                f.write(str(y))
+                f.write("\n")
+
 
             except:
                 _ = 0
 
         else :   #面積が閾値より小さければ、前回の座標を表示
-            cv2.circle(mask, (before_x,before_y), 8, (255,255,255),-1)
+            cv2.circle(showframe, (before_x,before_y), 3, (255,255,0),-1)
+            f.write(str(before_x))
+            f.write(",")
+            f.write(str(before_y))
+            f.write("\n")
 
 
         # 結果を表示
-        #cv2.imshow("Frame2", frame2)
-        cv2.imshow("Mask", mask)
+        cv2.imshow("Frame2", showframe)
+        #cv2.imshow("Mask", mask)
 
         try:
         # 3枚のフレームを更新
@@ -102,9 +118,11 @@ def main():
             break
 
         cnt = cnt+1
+    f.close()
     cap.release()
     cv2.destroyAllWindows()
     plt.show()
+
 
 
 if __name__ == '__main__':
