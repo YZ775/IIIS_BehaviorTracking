@@ -61,7 +61,9 @@ def main():
     global flag_new
     global sleepcnt
     global ContinueFlag
+    #移動量保存用リスト
     dist_list = []
+    #フレーム数保存用リスト
     ran_list = []
 
 
@@ -107,6 +109,7 @@ def main():
 
 
     frame_number = 0
+    #移動量用のフラッグ設定
     flag_moment = 1
     while(cap.isOpened()):
         time_stamp = datetime.datetime.now()
@@ -126,6 +129,7 @@ def main():
         showframe = frame2.copy()
 
         if(sleepcnt == 10): #寝たら
+            #サブプロットに変更
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
 
@@ -136,9 +140,12 @@ def main():
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
                 #移動量計算
                 distance = (x-before_x)**2+(y-before_y)**2
+                #before_x, before_yが設定されていない状態（一番初め）
                 if flag_moment == 1:
                     distance = 0
+                    #フラッグ消す
                     flag_moment = 0
+                #リストにデータ追加
                 dist_list.append(distance)
                 ran_list.append(frame_number)
                 plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
@@ -172,6 +179,7 @@ def main():
             cv2.circle(showframe, (before_x,before_y), 3, (255,255,0),-1)
             f.write(str(frame_number))
             f.write(" | ")
+            #リストにデータ追加
             distance = 0
             dist_list.append(distance)
             ran_list.append(frame_number)
@@ -219,6 +227,7 @@ def main():
     #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
+    #サブプロットで移動量を描画　横軸はフレーム数
     plt.subplot(2,1,2)
     plt.plot(ran_list, dist_list)
     plt.show()
