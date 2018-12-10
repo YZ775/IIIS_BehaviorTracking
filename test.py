@@ -67,7 +67,7 @@ def ShowPrev(path):
 
     cap_prev.set(0,0*1000)
     cv2.namedWindow('prev')
-    cv2.createTrackbar("Frame", "prev", 0, video_len_sec, ChangeBar)
+    cv2.createTrackbar("Time[ms]", "prev", 0, video_len_sec, ChangeBar)
     frame = cap_prev.read()[1]
     cv2.imshow("prev",frame)
     
@@ -75,22 +75,22 @@ def ShowPrev(path):
         key = cv2.waitKey(1)&0xff
         if key == ord('d'):
             ChangeBar(ofst+100)
-            cv2.setTrackbarPos("Frame","prev", ofst) 
+            cv2.setTrackbarPos("Time[ms]","prev", ofst) 
             print(ofst)
         
         if key == ord('a'):
             ChangeBar(ofst-100)
-            cv2.setTrackbarPos("Frame","prev", ofst)
+            cv2.setTrackbarPos("Time[ms]","prev", ofst)
             print(ofst)
 
         if key == ord('w'):
             ChangeBar(ofst+10)
-            cv2.setTrackbarPos("Frame","prev", ofst) 
+            cv2.setTrackbarPos("Time[ms]","prev", ofst) 
             print(ofst)
         
         if key == ord('s'):
             ChangeBar(ofst-10)
-            cv2.setTrackbarPos("Frame","prev", ofst)
+            cv2.setTrackbarPos("Time[ms]","prev", ofst)
             print(ofst)
             
         if key == ord('q'):
@@ -155,7 +155,7 @@ def main():
         isShift = input("change offset? (0/1)\n>>") #動画スタートのオフセット
         if(isShift == "1"): #数字でない場合強制終了
             print("########Operation Key############")
-            print("w: +10F a:-100F s:-10F d:+100F")
+            print("w: +10[ms] a:-100[ms] s:-10[ms] d:+100[ms]")
             shift_time = ShowPrev(p)
             cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
             print(shift_time)
