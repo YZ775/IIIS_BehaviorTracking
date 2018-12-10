@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import datetime
 import threading
+import sys
 
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
@@ -19,6 +20,7 @@ def IsSleep():
         print(sleepcnt)
     if(ContinueFlag == 1): #割り込みを続ける
         t=threading.Timer(0.1,IsSleep)
+        t.setDaemon(True)
         t.start()
 
 
@@ -90,15 +92,26 @@ def main():
 
     if(select == "1"):
         p = input("enter video path\n>> ")
+        shift_time = input("enter start offset [sec]\n>>") #動画スタートのオフセット
+        if(str.isdigit(shift_time)): #数字でない場合強制終了
+            shift_time = int(shift_time)
+        else:
+            print("illegal input")
+            sys.exit()
+        
         cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
+        cap.set(0,shift_time*1000)
     else:
-        print("input is illiegal")
+        print("illegal input")
 
     try:
         # フレームを3枚取得してグレースケール変換
         frame1 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
         frame2 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
-        frame3 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
+        
+        nextframe = cap.read()[1] #再生用に1枚抜く
+
+        frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
         h, w = frame1.shape
         plt.plot(w,-1*h,'w',marker='.') ##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
     except:
@@ -126,13 +139,15 @@ def main():
         area = cv2.contourArea(cnt)
         """
         #print(area)
-        showframe = frame2.copy()
+        showframe = nextframe.copy()
 
         if(sleepcnt == 10): #寝たら
             #サブプロットに変更
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
+            cv2.circle(showframe, (x,y), 15, (0,255,0),-1)
 
+        
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
             mu = cv2.moments(mask, False)
@@ -154,7 +169,7 @@ def main():
                 plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
                 before_x = x
                 before_y = y
-                cv2.circle(showframe, (x,y), 3, (255,255,0),-1)
+                cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
                 f.write(str(frame_number))
                 f.write(" | ")
                 if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
@@ -178,7 +193,7 @@ def main():
                 _ = 0
 
         else :   #面積が閾値より小さければ、前回の座標を表示
-            cv2.circle(showframe, (before_x,before_y), 3, (255,255,0),-1)
+            cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
             f.write(str(frame_number))
             f.write(" | ")
             #リストにデータ追加
@@ -207,16 +222,16 @@ def main():
             flag_new = 1
             print(flag_old,flag_new)
 
-
         # 結果を表示
         cv2.imshow("Frame2", showframe)
         #cv2.imshow("Mask", mask)
-
+        
         try:
         # 3枚のフレームを更新
             frame1 = frame2
             frame2 = frame3
-            frame3 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
+            nextframe = cap.read()[1]
+            frame3 = cv2.cvtColor(nextframe, cv2.COLOR_BGR2GRAY)
         except:
             break
 
@@ -240,5 +255,6 @@ def main():
 
 if __name__ == '__main__':
     t=threading.Thread(target = IsSleep)
+    t.setDaemon(True)
     t.start()
     main()
