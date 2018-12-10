@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 import datetime
 import threading
 import sys
+import os
 
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
+
 
 def IsSleep():
     global sleepcnt
@@ -17,7 +19,7 @@ def IsSleep():
         return 1
     if(flag_old == 1 and flag_new == 1): #前回動いてなくて今回も動いてない場合 カウントプラス
         sleepcnt = sleepcnt + 1
-        print(sleepcnt)
+        #print(sleepcnt)
     if(ContinueFlag == 1): #割り込みを続ける
         t=threading.Timer(0.1,IsSleep)
         t.setDaemon(True)
@@ -42,6 +44,61 @@ def frame_sub(img1, img2, img3, th):
     mask = cv2.medianBlur(diff, 3)
 
     return  mask
+
+
+
+ofst = 0
+def ShowPrev(path):
+    global ofst
+    def ChangeBar(val):
+        global ofst
+        ofst = val
+        cap_prev.set(0,val)
+        frame = cap_prev.read()[1]
+        try:
+            cv2.imshow("prev",frame)
+        except:
+            print("end of video")
+
+    cap_prev = cv2.VideoCapture(path)
+    video_frame = cap_prev.get(cv2.CAP_PROP_FRAME_COUNT) # フレーム数を取得する
+    video_fps = cap_prev.get(cv2.CAP_PROP_FPS)           # FPS を取得する
+    video_len_sec = int((video_frame / video_fps)*1000) #長さ[ms]を取得
+
+    cap_prev.set(0,0*1000)
+    cv2.namedWindow('prev')
+    cv2.createTrackbar("Frame", "prev", 0, video_len_sec, ChangeBar)
+    frame = cap_prev.read()[1]
+    cv2.imshow("prev",frame)
+    
+    while(cap_prev.isOpened()):
+        key = cv2.waitKey(1)&0xff
+        if key == ord('d'):
+            ChangeBar(ofst+100)
+            cv2.setTrackbarPos("Frame","prev", ofst) 
+            print(ofst)
+        
+        if key == ord('a'):
+            ChangeBar(ofst-100)
+            cv2.setTrackbarPos("Frame","prev", ofst)
+            print(ofst)
+
+        if key == ord('w'):
+            ChangeBar(ofst+10)
+            cv2.setTrackbarPos("Frame","prev", ofst) 
+            print(ofst)
+        
+        if key == ord('s'):
+            ChangeBar(ofst-10)
+            cv2.setTrackbarPos("Frame","prev", ofst)
+            print(ofst)
+            
+        if key == ord('q'):
+            break
+    
+    cap_prev.release()
+    cv2.destroyAllWindows()
+    return ofst
 
 #####################################
 #前回の座標値を記憶する変数
@@ -71,7 +128,10 @@ def main():
 
     todaydetail = datetime.datetime.today()
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
-    filename= "MousePos_" + todaydetail + ".txt"
+    
+    os.makedirs("log", exist_ok=True)
+    filename= "log/MousePos_" + todaydetail + ".txt"
+    print("log file = ",filename)
     f = open(filename,'w') #データ保存用ファイル
 
     f.write("#")
@@ -92,15 +152,19 @@ def main():
 
     if(select == "1"):
         p = input("enter video path\n>> ")
-        shift_time = input("enter start offset [sec]\n>>") #動画スタートのオフセット
-        if(str.isdigit(shift_time)): #数字でない場合強制終了
-            shift_time = int(shift_time)
+        isShift = input("change offset? (0/1)\n>>") #動画スタートのオフセット
+        if(isShift == "1"): #数字でない場合強制終了
+            print("########Operation Key############")
+            print("w: +10F a:-100F s:-10F d:+100F")
+            shift_time = ShowPrev(p)
+            cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
+            print(shift_time)
+            cap.set(0,shift_time)
         else:
-            print("illegal input")
-            sys.exit()
+            cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
+           
         
-        cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
-        cap.set(0,shift_time*1000)
+       
     else:
         print("illegal input")
 
@@ -140,6 +204,7 @@ def main():
         """
         #print(area)
         showframe = nextframe.copy()
+        
 
         if(sleepcnt == 10): #寝たら
             #サブプロットに変更
@@ -186,7 +251,7 @@ def main():
 
                 flag_old = flag_new #動いてるかどうかフラグ更新
                 flag_new = 0
-                print(flag_old,flag_new)
+                #print(flag_old,flag_new)
 
 
             except:
@@ -220,10 +285,10 @@ def main():
 
             flag_old = flag_new #動いてるかどうかフラグ更新
             flag_new = 1
-            print(flag_old,flag_new)
+            #print(flag_old,flag_new)
 
         # 結果を表示
-        cv2.imshow("Frame2", showframe)
+        cv2.imshow("showframe", showframe)
         #cv2.imshow("Mask", mask)
         
         try:
