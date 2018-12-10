@@ -11,7 +11,7 @@ ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 def IsSleep():
     global sleepcnt
     global ContinueFlag
-    
+
     if(ContinueFlag == 0): #割り込み終了
         return 1
     if(flag_old == 1 and flag_new == 1): #前回動いてなくて今回も動いてない場合 カウントプラス
@@ -52,7 +52,7 @@ flag_new = 0
 
 
 def main():
-    
+
     global before_x #グローバル変数であることを宣言
     global before_y
     global x
@@ -61,13 +61,15 @@ def main():
     global flag_new
     global sleepcnt
     global ContinueFlag
+    dist_list = []
+    ran_list = []
 
 
     todaydetail = datetime.datetime.today()
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
     filename= "MousePos_" + todaydetail + ".txt"
     f = open(filename,'w') #データ保存用ファイル
-    
+
     f.write("#")
     f.write("FrameNumber")
     f.write(" | ")
@@ -105,6 +107,7 @@ def main():
 
 
     frame_number = 0
+    flag_moment = 1
     while(cap.isOpened()):
         time_stamp = datetime.datetime.now()
         frame_number += 1
@@ -123,13 +126,21 @@ def main():
         showframe = frame2.copy()
 
         if(sleepcnt == 10): #寝たら
+            plt.subplot(2,1,1)
             plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
-        
+
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
             mu = cv2.moments(mask, False)
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
+                #移動量計算
+                distance = (x-before_x)**2+(y-before_y)**2
+                if flag_moment == 1:
+                    distance = 0
+                    flag_moment = 0
+                dist_list.append(distance)
+                ran_list.append(frame_number)
                 plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
                 plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
                 before_x = x
@@ -146,9 +157,9 @@ def main():
                 f.write(",")
                 f.write(str(y))
                 f.write(" | ")
-                f.write("wake")                
+                f.write("wake")
                 f.write("\n")
-                
+
                 flag_old = flag_new #動いてるかどうかフラグ更新
                 flag_new = 0
                 print(flag_old,flag_new)
@@ -161,12 +172,15 @@ def main():
             cv2.circle(showframe, (before_x,before_y), 3, (255,255,0),-1)
             f.write(str(frame_number))
             f.write(" | ")
+            distance = 0
+            dist_list.append(distance)
+            ran_list.append(frame_number)
             if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
                 f.write("null")
 
             else:
                 f.write(str(time_stamp))
-            
+
             f.write(" | ")
             f.write(str(before_x))
             f.write(",")
@@ -176,7 +190,7 @@ def main():
                 f.write("sleep")
             else:
                 f.write("wake")
-            
+
             f.write("\n")
 
             flag_old = flag_new #動いてるかどうかフラグ更新
@@ -205,7 +219,11 @@ def main():
     #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
+    plt.subplot(2,1,2)
+    plt.plot(ran_list, dist_list)
     plt.show()
+
+
 
 
 
