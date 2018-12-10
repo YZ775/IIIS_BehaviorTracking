@@ -148,7 +148,9 @@ def main():
                 #リストにデータ追加
                 dist_list.append(distance)
                 ran_list.append(frame_number)
+                plt.subplot(2,1,1)
                 plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
+                plt.subplot(2,1,1)
                 plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
                 before_x = x
                 before_y = y
