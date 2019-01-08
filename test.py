@@ -149,6 +149,9 @@ def main():
 
     if(select == "0"):
         cap = cv2.VideoCapture(0)  # カメラのキャプチャ
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 6)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 6)
+
 
     if(select == "1"):
         p = input("enter video path\n>> ")
@@ -206,11 +209,16 @@ def main():
         showframe = nextframe.copy()
         
 
-        if(sleepcnt == 10): #寝たら
+        if(sleepcnt >= 10 and sleepcnt < 20): #寝たら
             #サブプロットに変更
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
-            cv2.circle(showframe, (x,y), 15, (0,255,0),-1)
+            cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
+        elif(sleepcnt >= 20):
+            plt.subplot(2,1,1)
+            plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
+            cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
+
 
         
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
@@ -276,7 +284,9 @@ def main():
             f.write(",")
             f.write(str(before_y))
             f.write(" | ")
-            if(sleepcnt >= 10): #寝てたら
+            if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
+                f.write("freez")
+            elif(sleepcnt >= 20):
                 f.write("sleep")
             else:
                 f.write("wake")
