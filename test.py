@@ -8,6 +8,7 @@ import sys
 import os
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
+th_param = 400 #マスクの閾値
 
 
 def IsSleep():
@@ -143,8 +144,13 @@ def main():
     f.write("wake/sleep")
     f.write("\n")
 
+    print("Enter Threshold　parametar")
+    th_param = int(input("default:400 \n >>"))
+    print("\n")
+
     print("select Source")
     select = input("0:from camera\n1:from video\n>> ")
+    print("\n")
 
     if(select == "0"):
         cap = cv2.VideoCapture(0)  # カメラのキャプチャ
@@ -225,16 +231,16 @@ def main():
         if(sleepcnt >= 10 and sleepcnt < 20): #寝たら
             #サブプロットに変更
             plt.subplot(2,1,1)
-            plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
+            plt.plot(x,-1*y,'y',marker='.',markersize=7)#黄丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
         elif(sleepcnt >= 20):
             plt.subplot(2,1,1)
-            plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
+            plt.plot(x,-1*y,'g',marker='.',markersize=7)#緑丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
 
 
         
-        if area > 400: #面積が閾値より大きければ、重心の座標を更新
+        if area > th_param: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
             flag_init = flag_init + 1
             mu = cv2.moments(mask, False)
@@ -254,7 +260,7 @@ def main():
                     plt.subplot(2,1,1)
                     plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
                     plt.subplot(2,1,1)
-                    plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
+                    plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
                     cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
                     f.write(str(frame_number))
                     f.write(" | ")
