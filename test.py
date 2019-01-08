@@ -6,7 +6,6 @@ import datetime
 import threading
 import sys
 import os
-
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 
@@ -179,8 +178,7 @@ def main():
         nextframe = cap.read()[1] #再生用に1枚抜く
 
         frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
-        h, w = frame1.shape
-        plt.plot(w,-1*h,'w',marker='.') ##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
+        h, w = frame1.shape 
     except:
         _ = 0
 
@@ -190,7 +188,22 @@ def main():
 
     frame_number = 0
     #移動量用のフラッグ設定
-    flag_moment = 1
+    flag_init = 0 #初回フレーム判定のためのフラグ
+
+    plt.subplot(2,1,1)
+    plt.plot(0,0,'b',marker='.')##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
+    plt.plot(w,0,'b',marker='.')
+    plt.plot(w,-1*h,'b',marker='.')
+    plt.plot(0,-1*h,'b',marker='.')
+
+    plt.plot([0,w],[0,0],'b',linewidth = 0.5) #画像の境界線をプロット
+    plt.plot([0,0],[0,-1*h],'b',linewidth = 0.5)
+    plt.plot([0,w],[-1*h,-1*h],'b',linewidth = 0.5)
+    plt.plot([w,w],[0,-1*h],'b',linewidth = 0.5)
+
+
+
+
     while(cap.isOpened()):
         time_stamp = datetime.datetime.now()
         frame_number += 1
@@ -223,79 +236,82 @@ def main():
         
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
+            flag_init = flag_init + 1
             mu = cv2.moments(mask, False)
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
                 #移動量計算
-                distance = (x-before_x)**2+(y-before_y)**2
+                distance = np.sqrt((x-before_x)**2+(y-before_y)**2)
                 #before_x, before_yが設定されていない状態（一番初め）
-                if flag_moment == 1:
-                    distance = 0
+                #if flag_moment == 1:
+                 #   distance = 0
                     #フラッグ消す
-                    flag_moment = 0
+                  #  flag_moment = 0
                 #リストにデータ追加
-                dist_list.append(distance)
-                ran_list.append(frame_number)
-                plt.subplot(2,1,1)
-                plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
-                plt.subplot(2,1,1)
-                plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
+                if(flag_init >= 10):
+                    dist_list.append(distance)
+                    ran_list.append(frame_number)
+                    plt.subplot(2,1,1)
+                    plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
+                    plt.subplot(2,1,1)
+                    plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
+                    cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
+                    f.write(str(frame_number))
+                    f.write(" | ")
+                    if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
+                        f.write("null")
+                    else :
+                        f.write(str(time_stamp))
+                    f.write(" | ")
+                    f.write(str(x))
+                    f.write(",")
+                    f.write(str(y))
+                    f.write(" | ")
+                    f.write("wake")
+                    f.write("\n")
+
+                    
+                    #print(flag_old,flag_new)
                 before_x = x
                 before_y = y
-                cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
-                f.write(str(frame_number))
-                f.write(" | ")
-                if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
-                    f.write("null")
-                else :
-                    f.write(str(time_stamp))
-                f.write(" | ")
-                f.write(str(x))
-                f.write(",")
-                f.write(str(y))
-                f.write(" | ")
-                f.write("wake")
-                f.write("\n")
-
                 flag_old = flag_new #動いてるかどうかフラグ更新
                 flag_new = 0
-                #print(flag_old,flag_new)
-
 
             except:
                 _ = 0
 
         else :   #面積が閾値より小さければ、前回の座標を表示
-            cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
-            f.write(str(frame_number))
-            f.write(" | ")
-            #リストにデータ追加
-            distance = 0
-            dist_list.append(distance)
-            ran_list.append(frame_number)
-            if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
-                f.write("null")
+            if(flag_init >= 10):
+                cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
+                f.write(str(frame_number))
+                f.write(" | ")
+                #リストにデータ追加
+                distance = 0
+                dist_list.append(distance)
+                ran_list.append(frame_number)
+                if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
+                    f.write("null")
 
-            else:
-                f.write(str(time_stamp))
+                else:
+                    f.write(str(time_stamp))
 
-            f.write(" | ")
-            f.write(str(before_x))
-            f.write(",")
-            f.write(str(before_y))
-            f.write(" | ")
-            if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
-                f.write("freez")
-            elif(sleepcnt >= 20):
-                f.write("sleep")
-            else:
-                f.write("wake")
+                f.write(" | ")
+                f.write(str(before_x))
+                f.write(",")
+                f.write(str(before_y))
+                f.write(" | ")
+                if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
+                    f.write("freez")
+                elif(sleepcnt >= 20):
+                    f.write("sleep")
+                else:
+                    f.write("wake")
 
-            f.write("\n")
+                f.write("\n")
 
             flag_old = flag_new #動いてるかどうかフラグ更新
             flag_new = 1
-            #print(flag_old,flag_new)
+                #print(flag_old,flag_new)
 
         # 結果を表示
         cv2.imshow("showframe", showframe)
