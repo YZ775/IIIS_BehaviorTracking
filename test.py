@@ -70,14 +70,14 @@ def ShowPrev(path):
     cv2.createTrackbar("Time[ms]", "prev", 0, video_len_sec, ChangeBar)
     frame = cap_prev.read()[1]
     cv2.imshow("prev",frame)
-    
+
     while(cap_prev.isOpened()):
         key = cv2.waitKey(1)&0xff
         if key == ord('d'):
             ChangeBar(ofst+100)
-            cv2.setTrackbarPos("Time[ms]","prev", ofst) 
+            cv2.setTrackbarPos("Time[ms]","prev", ofst)
             print(ofst)
-        
+
         if key == ord('a'):
             ChangeBar(ofst-100)
             cv2.setTrackbarPos("Time[ms]","prev", ofst)
@@ -85,17 +85,17 @@ def ShowPrev(path):
 
         if key == ord('w'):
             ChangeBar(ofst+10)
-            cv2.setTrackbarPos("Time[ms]","prev", ofst) 
+            cv2.setTrackbarPos("Time[ms]","prev", ofst)
             print(ofst)
-        
+
         if key == ord('s'):
             ChangeBar(ofst-10)
             cv2.setTrackbarPos("Time[ms]","prev", ofst)
             print(ofst)
-            
+
         if key == ord('q'):
             break
-    
+
     cap_prev.release()
     cv2.destroyAllWindows()
     return ofst
@@ -128,7 +128,7 @@ def main():
 
     todaydetail = datetime.datetime.today()
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
-    
+
     os.makedirs("log", exist_ok=True)
     filename= "log/MousePos_" + todaydetail + ".txt"
     print("log file = ",filename)
@@ -165,9 +165,9 @@ def main():
             cap.set(0,shift_time)
         else:
             cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
-           
-        
-       
+
+
+
     else:
         print("illegal input")
 
@@ -175,7 +175,7 @@ def main():
         # フレームを3枚取得してグレースケール変換
         frame1 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
         frame2 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
-        
+
         nextframe = cap.read()[1] #再生用に1枚抜く
 
         frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
@@ -207,20 +207,20 @@ def main():
         """
         #print(area)
         showframe = nextframe.copy()
-        
 
-        if(sleepcnt >= 10 and sleepcnt < 20): #寝たら
+
+        if(sleepcnt >= 10 and sleepcnt < 20): #フリーズ
             #サブプロットに変更
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
-        elif(sleepcnt >= 20):
+        elif(sleepcnt >= 20): #寝てる
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
 
 
-        
+
         if area > 400: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
             mu = cv2.moments(mask, False)
@@ -300,7 +300,7 @@ def main():
         # 結果を表示
         cv2.imshow("showframe", showframe)
         #cv2.imshow("Mask", mask)
-        
+
         try:
         # 3枚のフレームを更新
             frame1 = frame2
@@ -323,6 +323,53 @@ def main():
     plt.subplot(2,1,2)
     plt.plot(ran_list, dist_list)
     plt.show()
+
+    #ログの処理
+    with open(filename) as f_after:
+        l = f_after.readlines()
+
+    #rev_l = reversed(l)
+    l.reverse()
+    l_flag = 0
+    #座標
+    lx_bef = 0
+    ly_bef = 0
+
+    for data in l:
+        data_s = data.split("|")
+
+        #フリーズしている
+        if l_flag == 1:
+            #座標値を取得
+            data_ss_p = data_s[2]
+            data_z_p = data_ss_p.split()
+
+            #前回の座標値と同じ
+            if lx_bef == data_z_p[0] and ly_bef == data_z_p[1]:
+                print("check")
+                text_a = "{} | {} | {} | {}"
+                text_b = text_a.format(data_s[0], data_s[1], data_s[2], "freez\n")
+                data = text_b
+                print(data)
+            #座標値が違う
+            else:
+                l_flag = 0
+
+
+
+
+        else:
+            if data_s[3] == "freez\n":
+                l_flag = 1
+
+                #座標値を保存
+                data_ss = data_s[2]
+                data_z = data_ss.split()
+                print(data_z)
+                lx_bef = data_z[0]
+                ly_bef = data_z[1]
+    l.reverse()
+    print(l)
 
 
 
