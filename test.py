@@ -6,9 +6,10 @@ import datetime
 import threading
 import sys
 import os
-
+import re
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
+th_param = 400 #マスクの閾値
 
 
 def IsSleep():
@@ -109,6 +110,79 @@ y = 0
 flag_old = 0
 flag_new = 0
 
+def logger(f_path, day_name):
+    #ログの処理
+    f_before = open(f_path, 'r')
+
+    os.makedirs("log_after", exist_ok=True)
+    text = "log_after/after-" + day_name + ".txt"
+
+    f_after  = open(text, 'w')
+
+    l = f_before.readlines()
+
+    #rev_l = reversed(l)
+    l.reverse() #リストの反転
+    l_flag = 0
+    #座標
+    lx_bef = 0
+    ly_bef = 0
+
+    new_data = []
+
+    for data in l:
+        data_s = data.split("|") #リストを分割
+        #print(data_s)
+
+        #フリーズしている
+        if l_flag == 1:
+            #座標値を取得
+            data_ss_p = data_s[2]
+            data_z_p = data_ss_p.split(",")
+            #print("{0} {1} {2} {3}".format(lx_bef, ly_bef, data_z_p[0], data_z_p[1]))
+
+            #前回の座標値と同じ
+            if lx_bef == data_z_p[0] and ly_bef == data_z_p[1]:
+
+                text_a = "{}|{}|{}| {}"
+                text_b = text_a.format(data_s[0], data_s[1], data_s[2], "freez\n")
+                #f.write(text_b) 新しいリストに入力
+                new_data.append(text_b)
+
+            #座標値が違う
+            else:
+                l_flag = 0
+                #新しいリストに入力
+                new_data.append(data)
+
+        #フリーズしていない
+        else:
+            if re.search('freez', data_s[3]):
+                #フラグを立てる
+                l_flag = 1
+                #print("check")
+
+                #座標値を保存
+                data_ss = data_s[2]
+                data_z = data_ss.split(",")
+                #print(data_z)
+                lx_bef = data_z[0]
+                ly_bef = data_z[1]
+                #新しいリストに入力
+                new_data.append(data)
+            #問題ない
+            else:
+                new_data.append(data)
+
+    new_data.reverse()
+    #print(new_data)
+    for logging in new_data:
+        f_after.write(logging)
+
+    f_before.close()
+    f_after.close()
+
+
 
 def main():
 
@@ -144,8 +218,13 @@ def main():
     f.write("wake/sleep")
     f.write("\n")
 
+    print("Enter Threshold　parametar")
+    th_param = int(input("default:400 \n >>"))
+    print("\n")
+
     print("select Source")
     select = input("0:from camera\n1:from video\n>> ")
+    print("\n")
 
     if(select == "0"):
         cap = cv2.VideoCapture(0)  # カメラのキャプチャ
@@ -180,7 +259,6 @@ def main():
 
         frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
         h, w = frame1.shape
-        plt.plot(w,-1*h,'w',marker='.') ##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
     except:
         _ = 0
 
@@ -190,7 +268,22 @@ def main():
 
     frame_number = 0
     #移動量用のフラッグ設定
-    flag_moment = 1
+    flag_init = 0 #初回フレーム判定のためのフラグ
+
+    plt.subplot(2,1,1)
+    plt.plot(0,0,'b',marker='.')##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
+    plt.plot(w,0,'b',marker='.')
+    plt.plot(w,-1*h,'b',marker='.')
+    plt.plot(0,-1*h,'b',marker='.')
+
+    plt.plot([0,w],[0,0],'b',linewidth = 0.5) #画像の境界線をプロット
+    plt.plot([0,0],[0,-1*h],'b',linewidth = 0.5)
+    plt.plot([0,w],[-1*h,-1*h],'b',linewidth = 0.5)
+    plt.plot([w,w],[0,-1*h],'b',linewidth = 0.5)
+
+
+
+
     while(cap.isOpened()):
         time_stamp = datetime.datetime.now()
         frame_number += 1
@@ -212,90 +305,93 @@ def main():
         if(sleepcnt >= 10 and sleepcnt < 20): #フリーズ
             #サブプロットに変更
             plt.subplot(2,1,1)
-            plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
+            plt.plot(x,-1*y,'y',marker='.',markersize=7)#黄丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
         elif(sleepcnt >= 20): #寝てる
             plt.subplot(2,1,1)
-            plt.plot(x,-1*y,'b',marker='.',markersize=5)#青丸をプロット
+            plt.plot(x,-1*y,'g',marker='.',markersize=7)#緑丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
 
 
 
-        if area > 400: #面積が閾値より大きければ、重心の座標を更新
+        if area > th_param: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
+            flag_init = flag_init + 1
             mu = cv2.moments(mask, False)
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
                 #移動量計算
-                distance = (x-before_x)**2+(y-before_y)**2
+                distance = np.sqrt((x-before_x)**2+(y-before_y)**2)
                 #before_x, before_yが設定されていない状態（一番初め）
-                if flag_moment == 1:
-                    distance = 0
+                #if flag_moment == 1:
+                 #   distance = 0
                     #フラッグ消す
-                    flag_moment = 0
+                  #  flag_moment = 0
                 #リストにデータ追加
-                dist_list.append(distance)
-                ran_list.append(frame_number)
-                plt.subplot(2,1,1)
-                plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
-                plt.subplot(2,1,1)
-                plt.plot([before_x,x],[-1*before_y,-1*y],'g',linewidth = 0.5) #線をプロット
+                if(flag_init >= 10):
+                    dist_list.append(distance)
+                    ran_list.append(frame_number)
+                    plt.subplot(2,1,1)
+                    plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
+                    plt.subplot(2,1,1)
+                    plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
+                    cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
+                    f.write(str(frame_number))
+                    f.write(" | ")
+                    if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
+                        f.write("null")
+                    else :
+                        f.write(str(time_stamp))
+                    f.write(" | ")
+                    f.write(str(x))
+                    f.write(",")
+                    f.write(str(y))
+                    f.write(" | ")
+                    f.write("wake")
+                    f.write("\n")
+
+
+                    #print(flag_old,flag_new)
                 before_x = x
                 before_y = y
-                cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
-                f.write(str(frame_number))
-                f.write(" | ")
-                if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
-                    f.write("null")
-                else :
-                    f.write(str(time_stamp))
-                f.write(" | ")
-                f.write(str(x))
-                f.write(",")
-                f.write(str(y))
-                f.write(" | ")
-                f.write("wake")
-                f.write("\n")
-
                 flag_old = flag_new #動いてるかどうかフラグ更新
                 flag_new = 0
-                #print(flag_old,flag_new)
-
 
             except:
                 _ = 0
 
         else :   #面積が閾値より小さければ、前回の座標を表示
-            cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
-            f.write(str(frame_number))
-            f.write(" | ")
-            #リストにデータ追加
-            distance = 0
-            dist_list.append(distance)
-            ran_list.append(frame_number)
-            if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
-                f.write("null")
+            if(flag_init >= 10):
+                cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
+                f.write(str(frame_number))
+                f.write(" | ")
+                #リストにデータ追加
+                distance = 0
+                dist_list.append(distance)
+                ran_list.append(frame_number)
+                if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
+                    f.write("null")
 
-            else:
-                f.write(str(time_stamp))
+                else:
+                    f.write(str(time_stamp))
 
-            f.write(" | ")
-            f.write(str(before_x))
-            f.write(",")
-            f.write(str(before_y))
-            f.write(" | ")
-            if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
-                f.write("freez")
-            elif(sleepcnt >= 20):
-                f.write("sleep")
-            else:
-                f.write("wake")
+                f.write(" | ")
+                f.write(str(before_x))
+                f.write(",")
+                f.write(str(before_y))
+                f.write(" | ")
+                if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
+                    f.write("freez")
+                elif(sleepcnt >= 20):
+                    f.write("sleep")
+                else:
+                    f.write("wake")
 
-            f.write("\n")
+                f.write("\n")
 
             flag_old = flag_new #動いてるかどうかフラグ更新
             flag_new = 1
-            #print(flag_old,flag_new)
+                #print(flag_old,flag_new)
 
         # 結果を表示
         cv2.imshow("showframe", showframe)
@@ -324,53 +420,7 @@ def main():
     plt.plot(ran_list, dist_list)
     plt.show()
 
-    #ログの処理
-    with open(filename) as f_after:
-        l = f_after.readlines()
-
-    #rev_l = reversed(l)
-    l.reverse()
-    l_flag = 0
-    #座標
-    lx_bef = 0
-    ly_bef = 0
-
-    for data in l:
-        data_s = data.split("|")
-
-        #フリーズしている
-        if l_flag == 1:
-            #座標値を取得
-            data_ss_p = data_s[2]
-            data_z_p = data_ss_p.split()
-
-            #前回の座標値と同じ
-            if lx_bef == data_z_p[0] and ly_bef == data_z_p[1]:
-                print("check")
-                text_a = "{} | {} | {} | {}"
-                text_b = text_a.format(data_s[0], data_s[1], data_s[2], "freez\n")
-                data = text_b
-                print(data)
-            #座標値が違う
-            else:
-                l_flag = 0
-
-
-
-
-        else:
-            if data_s[3] == "freez\n":
-                l_flag = 1
-
-                #座標値を保存
-                data_ss = data_s[2]
-                data_z = data_ss.split()
-                print(data_z)
-                lx_bef = data_z[0]
-                ly_bef = data_z[1]
-    l.reverse()
-    print(l)
-
+    logger(filename, todaydetail)
 
 
 
