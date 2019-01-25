@@ -29,6 +29,13 @@ class Tracking_Module:
             key = cv2.waitKey(1)&0xff
             if key == ord('q'):
                 break
+            elif key == ord('a'):
+                cv2.setTrackbarPos("Time[ms]","Preview", self.ofst-100) 
+
+            elif key == ord('d'):
+                cv2.setTrackbarPos("Time[ms]","Preview", self.ofst+100) 
+
+
         return self.ofst
 
     def frame_diff(self,frame1,frame2,frame3,th): #フレーム差分を作るメソッド　戻り値は面積,座標
@@ -55,54 +62,3 @@ class Tracking_Module:
         #y = 0
 
         return mask,area,x,y
-
-
-
-
-
-
-
-instance = Tracking_Module()
-
-cap = cv2.VideoCapture("1.mov")
-
-
-################################example######################################
-frame1 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
-frame2 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
-
-showframe  = cap.read()[1]
-frame3 = cv2.cvtColor(showframe, cv2.COLOR_RGB2GRAY)
-
-old_x = 0
-old_y = 0
-while(True):
-    
-    try:
-        mask, area, x,y = instance.frame_diff(frame1,frame2,frame3,10)
-        frame1 = frame2
-        frame2 = frame3
-        #frame3 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
-        showframe  = cap.read()[1]
-        frame3 = cv2.cvtColor(showframe, cv2.COLOR_RGB2GRAY)
-    except:
-        break
-
-
-    print(x,y)
-
-    if(area > 400):
-        old_x = x
-        old_y = y
-
-    cv2.circle(showframe, (old_x,old_y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
-
-    cv2.imshow('aaa',showframe)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-
-############################################################################
