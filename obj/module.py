@@ -36,7 +36,7 @@ class Tracking_Module:
                 cv2.setTrackbarPos("Time[ms]","Preview", self.ofst+100) 
 
 
-        return self.ofst
+        return self.ofst ,video_fps
 
     def frame_diff(self,frame1,frame2,frame3,th): #フレーム差分を作るメソッド　戻り値は面積,座標
        
