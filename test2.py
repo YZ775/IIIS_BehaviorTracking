@@ -49,6 +49,7 @@ def frame_sub(img1, img2, img3, th):
 
 
 ofst = 0
+fps = 0
 def ShowPrev(path):
     global ofst
     def ChangeBar(val):
@@ -110,7 +111,7 @@ y = 0
 flag_old = 0
 flag_new = 0
 
-def logger(f_path, day_name):
+def logger(f_path, day_name, b_s_s, a_s_s, late):
     #ログの処理
     f_before = open(f_path, 'r')
 
@@ -179,6 +180,22 @@ def logger(f_path, day_name):
     for logging in new_data:
         f_after.write(logging)
 
+    f_after.write("\n")
+
+    f_after.write("Before_Shock Sum of Motion Index: ")
+    f_after.write(str(b_s_s))
+    f_after.write("\n")
+
+    f_after.write("After_Shock Sum of Motion Index: ")
+    f_after.write(str(a_s_s))
+    f_after.write("\n")
+
+    f_after.write("A-B/A+B: ")
+    f_after.write(str(late))
+    f_after.write("\n")
+
+
+
     f_before.close()
     f_after.close()
 
@@ -224,7 +241,7 @@ def main():
 
     select = 1
     p = input("enter video path\n>> ")
-    
+
     print("########Operation Key############")
     print("w: +10[ms] a:-100[ms] s:-10[ms] d:+100[ms]")
     shift_time = ShowPrev(p)
@@ -232,7 +249,7 @@ def main():
     print(shift_time)
     cap.set(0,shift_time - 2000) #2000ms前からスタート
     video_fps = cap.get(cv2.CAP_PROP_FPS)           # FPS を取得する
-    
+
 
 
 
@@ -275,7 +292,7 @@ def main():
         time_stamp = datetime.datetime.now()
         frame_number += 1
         # フレーム間差分を計算
-        mask = frame_sub(frame1, frame2, frame3, th=10)
+        mask = frame_sub(frame1, frame2, frame3, th=40)
         area = cv2.countNonZero(mask)
         """
         #輪郭検出
@@ -315,7 +332,7 @@ def main():
                     #フラッグ消す
                   #  flag_moment = 0
                 #リストにデータ追加
-                if(flag_init >= 10):
+                if(flag_init >= 0):
                     dist_list.append(distance)
                     ran_list.append(frame_number)
                     plt.subplot(2,1,1)
@@ -348,7 +365,7 @@ def main():
                 _ = 0
 
         else :   #面積が閾値より小さければ、前回の座標を表示
-            if(flag_init >= 10):
+            if(flag_init >= 1):
                 cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
                 f.write(str(frame_number))
                 f.write(" | ")
@@ -399,6 +416,7 @@ def main():
 
     f.close()
     ContinueFlag = 0
+    dist_list[0] = 0
     #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
@@ -407,7 +425,53 @@ def main():
     plt.plot(ran_list, dist_list)
     plt.show()
 
-    logger(filename, todaydetail)
+    #logger(filename, todaydetail)
+    print(dist_list)
+    #print(len(dist_list))
+    maxxxx = max(dist_list)
+    shock_point = 0
+
+
+    for i,j in enumerate(dist_list):
+        #print("{0} {1}".format(i,j))
+        #print(type(j))
+        if j == maxxxx:
+            if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
+                shock_point = i
+            else:
+                video_fps = int(video_fps)
+                #print(video_fps)
+                shock_point = len(dist_list) - video_fps *2
+
+    #ショックのフレームナンバーを取得
+    #print(shock_point)
+
+    flo_dist = [float(s) for s in dist_list]
+
+    After_shock_sum = 0
+    Before_shock_sum = 0
+
+    for x in range(shock_point):
+        #print(flo_dist[x])
+        Before_shock_sum += flo_dist[x]
+
+    #print("Check")
+
+    for y in range(shock_point, len(dist_list)):
+        #print(flo_dist[y])
+        After_shock_sum += flo_dist[y]
+
+    print("{0} {1}".format(Before_shock_sum, After_shock_sum))
+
+    change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
+    print(change_rate)
+
+    logger(filename, todaydetail, Before_shock_sum, After_shock_sum, change_rate)
+
+
+
+
+
 
 
 
