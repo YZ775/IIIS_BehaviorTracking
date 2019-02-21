@@ -221,6 +221,7 @@ def main():
     #フレーム数保存用リスト
     ran_list = []
 
+    #動画のパスをすべて取得
     path_list = os.listdir(".\movie")
     print(path_list)
 
@@ -230,28 +231,10 @@ def main():
     #動画のショックポイントをリスト
     shock_time = []
 
-
-    todaydetail = datetime.datetime.today()
-    todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
-
-    os.makedirs("log", exist_ok=True)
-    filename= "log/MousePos_" + todaydetail + ".txt"
-    print("log file = ",filename)
-    f = open(filename,'w') #データ保存用ファイル
-
-    f.write("#")
-    f.write("FrameNumber")
-    f.write(" | ")
-    f.write("Time")
-    f.write(" | ")
-    f.write("(X,Y)")
-    f.write(" | ")
-    f.write("wake/sleep")
-    f.write("\n")
-
-    print("Enter Threshold　parametar")
-    th_param = int(input("default:400 \n >>"))
-    print("\n")
+    #パラメータ入力　必要なときコメント解除
+    #print("Enter Threshold　parametar")
+    #th_param = int(input("default:400 \n >>"))
+    #print("\n")
 
     select = 1
     #p = input("enter video path\n>> ")
@@ -259,25 +242,45 @@ def main():
     print("########Operation Key############")
     print("w: +10[ms] a:-100[ms] s:-10[ms] d:+100[ms]")
 
+    #全動画のショックのポイントを取得する
     for i in range(0,4):
+        
+        #動画のログファイル作成
+        todaydetail = datetime.datetime.today()
+        todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
+
+        os.makedirs("log", exist_ok=True)
+        filename= "log/MousePos_" + path_list[i] + todaydetail + ".txt"
+        print("log file = ",filename)
+        f = open(filename,'w') #データ保存用ファイル
+
+        f.write("#")
+        f.write("FrameNumber")
+        f.write(" | ")
+        f.write("Time")
+        f.write(" | ")
+        f.write("(X,Y)")
+        f.write(" | ")
+        f.write("wake/sleep")
+        f.write("\n")
+        ########
         path = "./movie/" + str(path_list[i])
         print(path)
 
         shift_time = ShowPrev(path)
-        cap = cv2.VideoCapture(path)
+        #cap = cv2.VideoCapture(path)
         print(shift_time)
+        #frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) #総フレーム数を取得
+        #video_fps = cap.get(cv2.CAP_PROP_FPS)
+        #frame_count = int(frame_count)
+        #print("{0}".format(frame_count))
 
+        #W = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        #H = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        #fpss = cap.get(cv2.CAP_PROP_FPS)
+        #cap.set(0,shift_time - 2000) #2000ms前からスタート
 
-        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) #総フレーム数を取得
-        video_fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_count = int(frame_count)
-        print("{0}".format(frame_count))
-
-        W = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        H = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        fpss = cap.get(cv2.CAP_PROP_FPS)
-
-        cap.set(0,shift_time - 2000) #2000ms前からスタート
+        shock_time.append(shift_time)
 
     #cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
     #print(shift_time)
