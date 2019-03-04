@@ -51,6 +51,7 @@ def frame_sub(img1, img2, img3, th):
 
 ofst = 0
 fps = 0
+
 def ShowPrev(path):
     global ofst
     def ChangeBar(val):
@@ -103,7 +104,7 @@ def ShowPrev(path):
     cv2.destroyAllWindows()
     return ofst
 
-#####################################
+#################################################
 
 #前回の座標値を記憶する変数
 before_x = 0
@@ -216,19 +217,19 @@ def main():
     global flag_new
     global sleepcnt
     global ContinueFlag
-    #移動量保存用リスト
+    #移動量保存用リスト 初期化はしないでよい？
     dist_list = []
-    #フレーム数保存用リスト
+    #フレーム数保存用リスト　初期化は？
     ran_list = []
 
     #動画のパスをすべて取得
     path_list = os.listdir(".\movie")
     print(path_list)
 
-    #動画の平均と分散をリスト
+    #動画の平均と分散をリストにて取得
     movie_mean = []
     movie_std = []
-    #動画のショックポイントをリスト
+    #動画のショックポイントをリストにて取得
     shock_time = []
 
     #パラメータ入力　必要なときコメント解除
@@ -244,8 +245,8 @@ def main():
 
     #全動画のショックのポイントを取得する
     for i in range(0,4):
-        
-        #動画のログファイル作成
+
+        #動画のログファイル作成　ログファイルは必要？　1つでいいのか？後処理は行うの？
         todaydetail = datetime.datetime.today()
         todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
 
@@ -264,10 +265,13 @@ def main():
         f.write("wake/sleep")
         f.write("\n")
         ########
+
         path = "./movie/" + str(path_list[i])
         print(path)
 
         shift_time = ShowPrev(path)
+
+        #必要な場合はコメント解除
         #cap = cv2.VideoCapture(path)
         print(shift_time)
         #frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) #総フレーム数を取得
@@ -285,50 +289,133 @@ def main():
     #cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
     #print(shift_time)
 
+#ここで、ユーザーの処理が終了
+#####################################################
+#今回はここから3/4
+#ここでフレームを取得してはいけない。
+
+    #動画をフレームで切り出して標準化する
+    for it in range(0,4):
+        #動画のパスを取得
+        path = "./movie/" + str(path_list[it])
+        print(path)
+
+        cap = cv2.VideoCapture(path)
+
+        frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) #総フレーム数を取得
+        frame_count = int(frame_count)
+        print("{0}".format(frame_count))
+
+        W = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        H = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        fpss = cap.get(cv2.CAP_PROP_FPS)
+
+        #サンプリング20
+        rand_list = random.sample(range(1,frame_count), k = 20)
+        print(rand_list)
+
+        count = 0
+
+        #1本の動画のサンプリングフレームの平均と分散を取得
+        while count <= frame_count:
+            ret, frame = cap.read()
+            count += 1
+
+            if count in rand_list:
+                if ret == True:
+
+                    print(np.mean(frame))
+                    print(np.std(frame))
+
+                    #1本の動画に対する処理しかできていない可能性が大きい Continue point
+                    movie_mean.append(np.mean(frame)) #平均
+                    movie_std.append(np.std(frame)) #分散
+
+        #一時的に開放
+        cap.release()
+
+    means = 0
+    stds = 0
+
+    leng = len(movie_mean)
+    print(leng)
+    for z in range(leng):
+
+        means += movie_mean[z]
+        stds += movie_std[z]
+
+        #動画の平均と分散を取得
+    means = int(means/len(movie_mean))
+    stds = int(stds/len(movie_std))
+
+    #平均・分散を取得 -- フレームの操作に処理をシフト
+    ####################################
+
+    #フレームに行うメインの処理
+
+    for ix in range(0,4):
+        paths = "./movie/" + str(path_list[ix])
+        cap = cv2.VideoCapture(paths)
+        shock_p = int(shock_time[ix])
+        cap.set(0, shock_p - 2000)
+
+        while(cap.isOpened()):
+            ret, frame = cap.read()
+
+            if ret == True:
+                #フレームの正規化
+                frame = (frame - means)/stds*int(16) + int(64)
+                frame = cv2.resize(frame, dsize=(int(W), int(H)))
+                #print("CHECK")
+
+                #書込み
+                #output.write(np.uint8(frame))
+
+                #cv2.imshow('frame',frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+
+                try:
+                    # フレームを3枚取得してグレースケール変換
+                    frame1 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                    frame2 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
+                    nextframe = cap.read()[1] #再生用に1枚抜く
+
+                    frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
+                    h, w = frame1.shape
+                except:
+                    _ = 0
 
 
 
 
-    try:
-        # フレームを3枚取得してグレースケール変換
-        frame1 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
-        frame2 = cv2.cvtColor(cap.read()[1], cv2.COLOR_RGB2GRAY)
 
-        nextframe = cap.read()[1] #再生用に1枚抜く
+                frame_number = 0
+                #移動量用のフラッグ設定
+                flag_init = 0 #初回フレーム判定のためのフラグ
 
-        frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
-        h, w = frame1.shape
-    except:
-        _ = 0
+                plt.subplot(2,1,1)
+                plt.plot(0,0,'b',marker='.')##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
+                plt.plot(w,0,'b',marker='.')
+                plt.plot(w,-1*h,'b',marker='.')
+                plt.plot(0,-1*h,'b',marker='.')
 
-
-
-
-
-    frame_number = 0
-    #移動量用のフラッグ設定
-    flag_init = 0 #初回フレーム判定のためのフラグ
-
-    plt.subplot(2,1,1)
-    plt.plot(0,0,'b',marker='.')##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
-    plt.plot(w,0,'b',marker='.')
-    plt.plot(w,-1*h,'b',marker='.')
-    plt.plot(0,-1*h,'b',marker='.')
-
-    plt.plot([0,w],[0,0],'b',linewidth = 0.5) #画像の境界線をプロット
-    plt.plot([0,0],[0,-1*h],'b',linewidth = 0.5)
-    plt.plot([0,w],[-1*h,-1*h],'b',linewidth = 0.5)
-    plt.plot([w,w],[0,-1*h],'b',linewidth = 0.5)
+                plt.plot([0,w],[0,0],'b',linewidth = 0.5) #画像の境界線をプロット
+                plt.plot([0,0],[0,-1*h],'b',linewidth = 0.5)
+                plt.plot([0,w],[-1*h,-1*h],'b',linewidth = 0.5)
+                plt.plot([w,w],[0,-1*h],'b',linewidth = 0.5)
 
 
 
 
-    while(frame_number < video_fps * 4):
-        time_stamp = datetime.datetime.now()
-        frame_number += 1
-        # フレーム間差分を計算
-        mask = frame_sub(frame1, frame2, frame3, th=40)
-        area = cv2.countNonZero(mask)
+                while(frame_number < video_fps * 4):
+                    time_stamp = datetime.datetime.now()
+                    frame_number += 1
+                    # フレーム間差分を計算
+                    mask = frame_sub(frame1, frame2, frame3, th=40)
+                    area = cv2.countNonZero(mask)
+
         """
         #輪郭検出
         image, contours, hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
@@ -338,170 +425,179 @@ def main():
         area = cv2.contourArea(cnt)
         """
         #print(area)
-        showframe = nextframe.copy()
+                    showframe = nextframe.copy()
 
 
-        if(sleepcnt >= 10 and sleepcnt < 20): #フリーズ
-            #サブプロットに変更
-            plt.subplot(2,1,1)
-            plt.plot(x,-1*y,'y',marker='.',markersize=7)#黄丸をプロット
-            cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
-        elif(sleepcnt >= 20): #寝てる
-            plt.subplot(2,1,1)
-            plt.plot(x,-1*y,'g',marker='.',markersize=7)#緑丸をプロット
-            cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
+                    if(sleepcnt >= 10 and sleepcnt < 20): #フリーズ
+                    #サブプロットに変更
+                        plt.subplot(2,1,1)
+                        plt.plot(x,-1*y,'y',marker='.',markersize=7)#黄丸をプロット
+                        cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
+
+                    elif(sleepcnt >= 20): #寝てる
+                        plt.subplot(2,1,1)
+                        plt.plot(x,-1*y,'g',marker='.',markersize=7)#緑丸をプロット
+                        cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
 
 
 
-        if area > th_param: #面積が閾値より大きければ、重心の座標を更新
-            sleepcnt = 0 #眠ってるカウントをリセット
-            flag_init = flag_init + 1
-            mu = cv2.moments(mask, False)
-            try:
-                x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
-                #移動量計算
-                distance = np.sqrt((x-before_x)**2+(y-before_y)**2)
+                    if area > th_param: #面積が閾値より大きければ、重心の座標を更新
+                        sleepcnt = 0 #眠ってるカウントをリセット
+                        flag_init = flag_init + 1
+                        mu = cv2.moments(mask, False)
+
+                        try:
+                            x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
+                            #移動量計算
+                            distance = np.sqrt((x-before_x)**2+(y-before_y)**2)
                 #before_x, before_yが設定されていない状態（一番初め）
                 #if flag_moment == 1:
                  #   distance = 0
                     #フラッグ消す
                   #  flag_moment = 0
                 #リストにデータ追加
-                if(flag_init >= 0):
-                    dist_list.append(distance)
-                    ran_list.append(frame_number)
-                    plt.subplot(2,1,1)
-                    plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
-                    plt.subplot(2,1,1)
-                    plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
-                    cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
-                    f.write(str(frame_number))
-                    f.write(" | ")
-                    if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
-                        f.write("null")
-                    else :
-                        f.write(str(time_stamp))
-                    f.write(" | ")
-                    f.write(str(x))
-                    f.write(",")
-                    f.write(str(y))
-                    f.write(" | ")
-                    f.write("wake")
-                    f.write("\n")
+
+                            if(flag_init >= 0):
+                                dist_list.append(distance)
+                                ran_list.append(frame_number)
+                                plt.subplot(2,1,1)
+                                plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
+                                plt.subplot(2,1,1)
+                                plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
+                                cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
+                                f.write(str(frame_number))
+                                f.write(" | ")
+
+                                if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
+                                    f.write("null")
+                                else :
+                                    f.write(str(time_stamp))
+                                f.write(" | ")
+                                f.write(str(x))
+                                f.write(",")
+                                f.write(str(y))
+                                f.write(" | ")
+                                f.write("wake")
+                                f.write("\n")
 
 
                     #print(flag_old,flag_new)
-                before_x = x
-                before_y = y
-                flag_old = flag_new #動いてるかどうかフラグ更新
-                flag_new = 0
+                            before_x = x
+                            before_y = y
+                            flag_old = flag_new #動いてるかどうかフラグ更新
+                            flag_new = 0
 
-            except:
-                _ = 0
+                        except:
+                            _ = 0
 
-        else :   #面積が閾値より小さければ、前回の座標を表示
-            if(flag_init >= 1):
-                cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
-                f.write(str(frame_number))
-                f.write(" | ")
-                #リストにデータ追加
-                distance = 0
-                dist_list.append(distance)
-                ran_list.append(frame_number)
-                if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
-                    f.write("null")
+                    else :   #面積が閾値より小さければ、前回の座標を表示
+                        if(flag_init >= 1):
+                            cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
+                            f.write(str(frame_number))
+                            f.write(" | ")
 
-                else:
-                    f.write(str(time_stamp))
+                    #リストにデータ追加
+                            distance = 0
+                            dist_list.append(distance)
+                            ran_list.append(frame_number)
+                            if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
+                                f.write("null")
 
-                f.write(" | ")
-                f.write(str(before_x))
-                f.write(",")
-                f.write(str(before_y))
-                f.write(" | ")
-                if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
-                    f.write("freez")
-                elif(sleepcnt >= 20):
-                    f.write("sleep")
-                else:
-                    f.write("wake")
+                            else:
+                                f.write(str(time_stamp))
 
-                f.write("\n")
+                            f.write(" | ")
+                            f.write(str(before_x))
+                            f.write(",")
+                            f.write(str(before_y))
+                            f.write(" | ")
 
-            flag_old = flag_new #動いてるかどうかフラグ更新
-            flag_new = 1
+
+                        if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
+                            f.write("freez")
+                        elif(sleepcnt >= 20):
+                            f.write("sleep")
+                        else:
+                            f.write("wake")
+
+                        f.write("\n")
+
+                        flag_old = flag_new #動いてるかどうかフラグ更新
+                        flag_new = 1
                 #print(flag_old,flag_new)
 
-        # 結果を表示
-        cv2.imshow("showframe", showframe)
-        #cv2.imshow("Mask", mask)
+                # 結果を表示
+                    cv2.imshow("showframe", showframe)
+                #cv2.imshow("Mask", mask)
 
-        try:
-        # 3枚のフレームを更新
-            frame1 = frame2
-            frame2 = frame3
-            nextframe = cap.read()[1]
-            frame3 = cv2.cvtColor(nextframe, cv2.COLOR_BGR2GRAY)
-        except:
-            break
+                    try:
+                        # 3枚のフレームを更新
+                        frame1 = frame2
+                        frame2 = frame3
+                        nextframe = cap.read()[1]
+                        frame3 = cv2.cvtColor(nextframe, cv2.COLOR_BGR2GRAY)
+                    except:
+                        break
 
-        # qキーが押されたら途中終了
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+                # qキーが押されたら途中終了
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
 
-    f.close()
-    ContinueFlag = 0
-    dist_list[0] = 0
-    #t.cancel()
-    cap.release()
-    cv2.destroyAllWindows()
-    #サブプロットで移動量を描画　横軸はフレーム数
-    plt.subplot(2,1,2)
-    plt.plot(ran_list, dist_list)
-    plt.show()
-
-    #logger(filename, todaydetail)
-    print(dist_list)
-    #print(len(dist_list))
-    maxxxx = max(dist_list)
-    shock_point = 0
+                f.close()
 
 
-    for i,j in enumerate(dist_list):
-        #print("{0} {1}".format(i,j))
-        #print(type(j))
-        if j == maxxxx:
-            if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
-                shock_point = i
-            else:
-                video_fps = int(video_fps)
-                #print(video_fps)
-                shock_point = len(dist_list) - video_fps *2
+                ContinueFlag = 0
+                #t.cancel()
+                cap.release()
+                cv2.destroyAllWindows()
+                #サブプロットで移動量を描画　横軸はフレーム数
+                plt.subplot(2,1,2)
+                plt.plot(ran_list, dist_list)
+                plt.show()
 
-    #ショックのフレームナンバーを取得
-    #print(shock_point)
+                #logger(filename, todaydetail)
+                dist_list[0] = 0
+                print(dist_list)
+                #print(len(dist_list))
+                maxxxx = max(dist_list)
+                shock_point = 0
 
-    flo_dist = [float(s) for s in dist_list]
 
-    After_shock_sum = 0
-    Before_shock_sum = 0
+                for i,j in enumerate(dist_list):
+                    #print("{0} {1}".format(i,j))
+                    #print(type(j))
+                    if j == maxxxx:
+                        if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
+                            shock_point = i
+                    else:
+                        video_fps = int(video_fps)
+                        #print(video_fps)
+                        shock_point = len(dist_list) - video_fps *2
 
-    for x in range(shock_point):
-        #print(flo_dist[x])
-        Before_shock_sum += flo_dist[x]
+                #ショックのフレームナンバーを取得
+                #print(shock_point)
 
-    #print("Check")
+                flo_dist = [float(s) for s in dist_list]
 
-    for y in range(shock_point, len(dist_list)):
-        #print(flo_dist[y])
-        After_shock_sum += flo_dist[y]
+                After_shock_sum = 0
+                Before_shock_sum = 0
 
-    print("{0} {1}".format(Before_shock_sum, After_shock_sum))
+                for x in range(shock_point):
+                    #print(flo_dist[x])
+                    Before_shock_sum += flo_dist[x]
 
-    change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
-    print(change_rate)
+                #print("Check")
 
-    logger(filename, todaydetail, Before_shock_sum, After_shock_sum, change_rate)
+                for y in range(shock_point, len(dist_list)):
+                    #print(flo_dist[y])
+                    After_shock_sum += flo_dist[y]
+
+                print("{0} {1}".format(Before_shock_sum, After_shock_sum))
+
+                change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
+                print(change_rate)
+
+    #logger(filename, todaydetail, Before_shock_sum, After_shock_sum, change_rate)
 
 
 
@@ -522,84 +618,3 @@ if __name__ == '__main__':
 #動画の平均と分散をリスト
 #movie_mean = []
 #movie_std = []
-
-#全動画に処理をおこなう
-for i in range(0,4):
-    path = "./movie/" + str(path_list[i])
-    print(path)
-
-
-    cap = cv2.VideoCapture(path)
-
-    frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT) #総フレーム数を取得
-    frame_count = int(frame_count)
-    print("{0}".format(frame_count))
-
-    W = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-    H = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-    fpss = cap.get(cv2.CAP_PROP_FPS)
-
-    #サンプリング20
-    rand_list = random.sample(range(1,frame_count), k = 20)
-    print(rand_list)
-
-    count = 0
-
-    #1本の動画のサンプリングフレームの平均と分散を取得
-    while count <= frame_count:
-        ret, frame = cap.read()
-        count += 1
-
-        if count in rand_list:
-            if ret == True:
-
-                print(np.mean(frame))
-                print(np.std(frame))
-
-                movie_mean.append(np.mean(frame)) #平均
-                movie_std.append(np.std(frame)) #分散
-
-    #一時的に開放
-    cap.release()
-
-    means = 0
-    stds = 0
-
-    leng = len(movie_mean)
-    print(leng)
-    for z in range(leng):
-
-        means += movie_mean[z]
-        stds += movie_std[z]
-
-    #動画の平均と分散を取得
-    means = int(means/len(movie_mean))
-    stds = int(stds/len(movie_std))
-
-    #動画を再合成する
-    #fourcc = cv2.VideoWriter_fourcc(*'DIV3')
-    #output = cv2.VideoWriter(str(i) + '.avi', fourcc, fpss, (int(W),int(H)))
-
-    cap = cv2.VideoCapture(path)
-
-    while(cap.isOpened()):
-        ret, frame = cap.read()
-
-        if ret == True:
-            #フレームの正規化
-            frame = (frame - means)/stds*int(16) + int(64)
-            frame = cv2.resize(frame, dsize=(int(W), int(H)))
-            #print("CHECK")
-
-            #書込み
-            #output.write(np.uint8(frame))
-
-            #cv2.imshow('frame',frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-    print("complete")
-
-    cap.release()
-    #output.release()
-    cv2.destroyAllWindows()
