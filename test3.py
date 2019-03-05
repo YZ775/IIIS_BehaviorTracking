@@ -226,9 +226,6 @@ def main():
     path_list = os.listdir(".\movie")
     print(path_list)
 
-    #動画の平均と分散をリストにて取得
-    movie_mean = []
-    movie_std = []
     #動画のショックポイントをリストにて取得
     shock_time = []
 
@@ -243,28 +240,27 @@ def main():
     print("########Operation Key############")
     print("w: +10[ms] a:-100[ms] s:-10[ms] d:+100[ms]")
 
+    #動画のログファイル作成　ログファイルは1つのみとする
+    todaydetail = datetime.datetime.today()
+    todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
+
+    os.makedirs("log", exist_ok=True)
+    filename= "log/Movie" + todaydetail + ".txt"
+    print("log file = ",filename)
+    f = open(filename,'w') #データ保存用ファイル
+
+    f.write("#")
+    f.write("FrameNumber")
+    f.write(" | ")
+    f.write("Time")
+    f.write(" | ")
+    f.write("(X,Y)")
+    f.write(" | ")
+    f.write("wake/sleep")
+    f.write("\n")
+
     #全動画のショックのポイントを取得する
     for i in range(0,4):
-
-        #動画のログファイル作成　ログファイルは必要？　1つでいいのか？後処理は行うの？
-        todaydetail = datetime.datetime.today()
-        todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
-
-        os.makedirs("log", exist_ok=True)
-        filename= "log/MousePos_" + path_list[i] + todaydetail + ".txt"
-        print("log file = ",filename)
-        f = open(filename,'w') #データ保存用ファイル
-
-        f.write("#")
-        f.write("FrameNumber")
-        f.write(" | ")
-        f.write("Time")
-        f.write(" | ")
-        f.write("(X,Y)")
-        f.write(" | ")
-        f.write("wake/sleep")
-        f.write("\n")
-        ########
 
         path = "./movie/" + str(path_list[i])
         print(path)
@@ -295,6 +291,12 @@ def main():
 #ここでフレームを取得してはいけない。
 
     #動画をフレームで切り出して標準化する
+    movies_mean = 0
+    movies_std = 0
+
+    means = []
+    stds = []
+
     for it in range(0,4):
         #動画のパスを取得
         path = "./movie/" + str(path_list[it])
@@ -317,6 +319,9 @@ def main():
         count = 0
 
         #1本の動画のサンプリングフレームの平均と分散を取得
+        movie_mean = []
+        movie_std = []
+
         while count <= frame_count:
             ret, frame = cap.read()
             count += 1
@@ -324,72 +329,109 @@ def main():
             if count in rand_list:
                 if ret == True:
 
-                    print(np.mean(frame))
-                    print(np.std(frame))
-
-                    #1本の動画に対する処理しかできていない可能性が大きい Continue point
-                    movie_mean.append(np.mean(frame)) #平均
-                    movie_std.append(np.std(frame)) #分散
+                    movie_mean.append(np.mean(frame)) #フレームごとの平均
+                    movie_std.append(np.std(frame)) #フレームごとの分散
 
         #一時的に開放
         cap.release()
+        cv2.destroyAllWindows()
 
-    means = 0
-    stds = 0
+        leng = len(movie_mean)
+        #print(leng)
 
-    leng = len(movie_mean)
-    print(leng)
-    for z in range(leng):
+        means.append(int(sum(movie_mean)/leng)) #動画ごとの平均
+        stds.append(int(sum(movie_std)/leng)) #動画ごとの分散
 
-        means += movie_mean[z]
-        stds += movie_std[z]
+    #全動画の平均と分散
+    len_mov  = len(means)
+    movies_mean = int(sum(means)/len_mov)
+    movies_std = int(sum(stds)/len_mov)
+    print("All movie mean std")
+    print("{0} {1}".format(movies_mean, movies_std))
 
-        #動画の平均と分散を取得
-    means = int(means/len(movie_mean))
-    stds = int(stds/len(movie_std))
+    """
+    #動画の平均と分散を取得
+    means2 = map(lambda x: int(x/len(moive_mean)), means)
+    stds2 = map(lambda x: int(x/len(movie_std)), stds)
+
+    #全動画の平均と分散を取得
+    lengs = len(means2)
+    print(lengs)
+
+    for y in range(lengs):
+        movies_mean += means2[y]
+        movies_std += stds2[y]
+
+    #全動画の平均と分散
+    movies_mean = int(movies_mean/lengs)
+    movies_std = int(movies_std/lengs)
+    """
 
     #平均・分散を取得 -- フレームの操作に処理をシフト
     ####################################
 
     #フレームに行うメインの処理
 
+    after_list = []
+    before_list = []
+    change_list = []
+
     for ix in range(0,4):
         paths = "./movie/" + str(path_list[ix])
-        cap = cv2.VideoCapture(paths)
+        print(paths)
+        caps = cv2.VideoCapture(paths)
         shock_p = int(shock_time[ix])
-        cap.set(0, shock_p - 2000)
+        print(shock_p)
 
-        while(cap.isOpened()):
-            ret, frame = cap.read()
+        video_fps = caps.get(cv2.CAP_PROP_FPS)
+        caps.set(0, shock_p - 2000)
+
+        #Contiue Point
+        while(caps.isOpened()):
+            ret, frame = caps.read()
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            cv2.imshow("frame", gray)
+
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+"""
+            cv2.imshow("before", frame)
+            #print(type(frame))
 
             if ret == True:
                 #フレームの正規化
-                frame = (frame - means)/stds*int(16) + int(64)
-                frame = cv2.resize(frame, dsize=(int(W), int(H)))
+                frame = (frame - movies_mean)/movies_std #int(16) + int(64)
+                cv2.imshow("frame", frame)
+                cv2.imwrite("frame.jpg", frame)
+                #frame = cv2.resize(frame, dsize=(int(W), int(H)))
+                print("SHAPE {0}".format(frame.shape))
+                h, w, t = frame.shape
                 #print("CHECK")
 
                 #書込み
                 #output.write(np.uint8(frame))
 
                 #cv2.imshow('frame',frame)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+                #if cv2.waitKey(1) & 0xFF == ord('q'):
+                    #break
 
-                try:
-                    # フレームを3枚取得してグレースケール変換
-                    frame1 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-                    frame2 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                # フレームを3枚取得してグレースケール変換
+                frame1 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+                frame2 = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
-                    nextframe = cap.read()[1] #再生用に1枚抜く
+                nextframe = cap.read()[1] #再生用に1枚抜く
 
-                    frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
-                    h, w = frame1.shape
-                except:
-                    _ = 0
+                frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
+                #h, w = frame1.shape
 
-
-
-
+                print("1 {0}".format(frame1.shape))
+                print("2 {0}".format(frame2.shape))
+                print("3 {0}".format(frame3.shape))
 
                 frame_number = 0
                 #移動量用のフラッグ設定
@@ -416,15 +458,6 @@ def main():
                     mask = frame_sub(frame1, frame2, frame3, th=40)
                     area = cv2.countNonZero(mask)
 
-        """
-        #輪郭検出
-        image, contours, hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        cnt = contours[0]
-
-        #マスクの面積計算
-        area = cv2.contourArea(cnt)
-        """
-        #print(area)
                     showframe = nextframe.copy()
 
 
@@ -543,64 +576,92 @@ def main():
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
 
-                f.close()
+                #f.close()
 
 
-                ContinueFlag = 0
-                #t.cancel()
-                cap.release()
-                cv2.destroyAllWindows()
-                #サブプロットで移動量を描画　横軸はフレーム数
-                plt.subplot(2,1,2)
-                plt.plot(ran_list, dist_list)
-                plt.show()
+        ContinueFlag = 0
+        #1次的に解法
+        cap.release()
+        cv2.destroyAllWindows()
+        #サブプロットで移動量を描画　横軸はフレーム数
+        plt.subplot(2,1,2)
+        plt.plot(ran_list, dist_list)
+        plt.show()
 
-                #logger(filename, todaydetail)
-                dist_list[0] = 0
-                print(dist_list)
-                #print(len(dist_list))
-                maxxxx = max(dist_list)
-                shock_point = 0
+        #logger(filename, todaydetail)
+
+        dist_list[0] = 0
+        print(dist_list)
+        #print(len(dist_list))
+        maxxxx = max(dist_list)
+        shock_point = 0
 
 
-                for i,j in enumerate(dist_list):
-                    #print("{0} {1}".format(i,j))
-                    #print(type(j))
-                    if j == maxxxx:
-                        if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
-                            shock_point = i
-                    else:
-                        video_fps = int(video_fps)
-                        #print(video_fps)
-                        shock_point = len(dist_list) - video_fps *2
+        for i,j in enumerate(dist_list):
+            #print("{0} {1}".format(i,j))
+            #print(type(j))
+            if j == maxxxx:
+                if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
+                        shock_point = i
+                else:
+                    #全動画のvideo fps が取れているのかを確認する必要がある / あるいは、ここでとってしまうか。
+                    video_fps = int(video_fps)
+                    #print(video_fps)
+                    shock_point = len(dist_list) - video_fps *2
 
                 #ショックのフレームナンバーを取得
                 #print(shock_point)
 
-                flo_dist = [float(s) for s in dist_list]
+        flo_dist = [float(s) for s in dist_list]
 
-                After_shock_sum = 0
-                Before_shock_sum = 0
+        After_shock_sum = 0
+        Before_shock_sum = 0
 
-                for x in range(shock_point):
-                    #print(flo_dist[x])
-                    Before_shock_sum += flo_dist[x]
+        for x in range(shock_point):
+            #print(flo_dist[x])
+            Before_shock_sum += flo_dist[x]
 
-                #print("Check")
+            #print("Check")
 
-                for y in range(shock_point, len(dist_list)):
-                    #print(flo_dist[y])
-                    After_shock_sum += flo_dist[y]
+        for y in range(shock_point, len(dist_list)):
+            #print(flo_dist[y])
+            After_shock_sum += flo_dist[y]
 
-                print("{0} {1}".format(Before_shock_sum, After_shock_sum))
+        print("{0} {1}".format(Before_shock_sum, After_shock_sum))
 
-                change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
-                print(change_rate)
+        change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
+        print(change_rate)
+
+    #各動画のafter / before / change を書込み
+        after_list.append(After_shock_sum)
+        before_list.append(Before_shock_sum)
+        change_list.append(change_rate)
+
+    f.write("\n")
+    f.write("All Movie LOG")
+    f.write("movie name")
+    f.write("  |  ")
+    f.write("Before Shock")
+    f.write("  |  ")
+    f.write("After Shock")
+    f.write("  |  ")
+    f.write("Rate")
+    f.write("\n")
+
+    for iz in range(0,4):
+        f.write(path_list[iz])
+        f.write("  ")
+        f.write(before_list[iz])
+        f.write("  ")
+        f.write(after_list[iz])
+        f.write("  ")
+        f.write(change_list[iz])
+        f.write("\n")
+
+    f.close()
 
     #logger(filename, todaydetail, Before_shock_sum, After_shock_sum, change_rate)
-
-
-
+    """
 
 if __name__ == '__main__':
     t=threading.Thread(target = IsSleep)
@@ -608,13 +669,4 @@ if __name__ == '__main__':
     t.start()
     main()
 
-
-
 ##########################################################################
-
-#path_list = os.listdir(".\movie")
-#print(path_list)
-
-#動画の平均と分散をリスト
-#movie_mean = []
-#movie_std = []
