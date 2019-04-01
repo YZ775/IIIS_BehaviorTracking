@@ -9,7 +9,8 @@ def output(folder):
     for file in files:
         if "mov" not in file and "mp4" not in file and "avi" not in file:
             continue
-        filew.write(file + "\n")
+        filename = os.path.join(folder, file)
+        filew.write(filename + "\n")
     filew.close()
 
 # ファイル選択ダイアログの表示

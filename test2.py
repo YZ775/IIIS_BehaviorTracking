@@ -476,7 +476,7 @@ def main(movie_path):
 if __name__ == '__main__':
     #動画取得
     os.makedirs("Subprocess", exist_ok=True)
-    pathr = "Subprocess/movie_list.txt"
+    pathr = "Subprocess/movie_list.dat"
     files = open(pathr)
     movielist = []
     for line in files:
