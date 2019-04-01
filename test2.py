@@ -7,6 +7,7 @@ import threading
 import sys
 import os
 import re
+
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 th_param = 400 #マスクの閾値
@@ -201,7 +202,7 @@ def logger(f_path, day_name, b_s_s, a_s_s, late):
 
 
 
-def main():
+def main(movie_path):
 
     global before_x #グローバル変数であることを宣言
     global before_y
@@ -240,7 +241,7 @@ def main():
     print("\n")
 
     select = 1
-    p = input("enter video path\n>> ")
+    p = movie_path
 
     print("########Operation Key############")
     print("w: +10[ms] a:-100[ms] s:-10[ms] d:+100[ms]")
@@ -472,12 +473,17 @@ def main():
 
 
 
-
-
-
-
 if __name__ == '__main__':
-    t=threading.Thread(target = IsSleep)
-    t.setDaemon(True)
-    t.start()
-    main()
+    #動画取得
+    pathr = "movie_list.txt"
+    files = open(pathr)
+    movielist = []
+    for line in files:
+        movielist.append(line)
+
+    #バッチ処理
+    for name in movielist:
+        t=threading.Thread(target = IsSleep)
+        t.setDaemon(True)
+        t.start()
+        main(name)
