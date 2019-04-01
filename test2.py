@@ -475,11 +475,20 @@ def main(movie_path):
 
 if __name__ == '__main__':
     #動画取得
-    pathr = "movie_list.txt"
+    os.makedirs("Subprocess", exist_ok=True)
+    pathr = "Subprocess/movie_list.txt"
     files = open(pathr)
     movielist = []
     for line in files:
-        movielist.append(line)
+        newl = line.strip()
+        if newl == "":
+            continue
+        else:
+            movielist.append(newl)
+
+
+    print("length {}".format(len(movielist)))
+    print("list {}".format(movielist))
 
     #バッチ処理
     for name in movielist:
