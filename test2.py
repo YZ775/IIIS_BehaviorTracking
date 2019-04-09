@@ -112,30 +112,36 @@ y = 0
 flag_old = 0
 flag_new = 0
 
+folder_path = ""
+
 def logger(f_path, day_name, b_s_s, a_s_s, late):
     #ログの処理
     f_before = open(f_path, 'r')
 
-    folder_path = ""
+    global folder_path
 
     # output先のパスが書かれたファイルを開く
-    output_place = os.path.join(os.getcwd, "Subprocess", "output_place.dat")
-    if not os.path.isFile(output_place):
+    output_place = os.path.join("Subprocess", "output_place.dat")
+    print(output_place)
+    #output_place = os.getcwd + "\\Subprocess" + "\\output_place.dat"
+    if not os.path.isfile(output_place):
         print("Output folder is not found.\nFiles will be saved in log_after.")
-        folder_path = os.path.join(os.getcwd, "log_after")
+        folder_path = os.path.join("log_after")
     else:
         file_out = open(output_place,"r")
         folder_path = file_out.readline()
         folder_path.replace("\n","")
         file_out.close()
-        os.remove(output_place)
+        #os.remove(output_place)
     if folder_path == "":
         print("Output folder is not found.\nFiles will be saved in log_after.")
-        folder_path = os.path.join(os.getcwd, "log_after")
+        folder_path = os.path.join("log_after")
 
 
     # os.makedirs("log_after", exist_ok=True)
-    text = os.path.join(folder_path,"after-", day_name, ".txt")
+    #text = os.path.join(folder_path,"after-", day_name, ".txt")
+    text = folder_path + "/after-" + day_name + ".txt"
+    print(folder_path)
 
     f_after  = open(text, 'w')
 
@@ -443,7 +449,6 @@ def main(movie_path):
     #サブプロットで移動量を描画　横軸はフレーム数
     plt.subplot(2,1,2)
     plt.plot(ran_list, dist_list)
-    plt.show()
 
     #logger(filename, todaydetail)
     print(dist_list)
@@ -488,8 +493,10 @@ def main(movie_path):
 
     logger(filename, todaydetail, Before_shock_sum, After_shock_sum, change_rate)
 
-
-
+    picturepath = folder_path + "/" + todaydetail + ".png"
+    print(picturepath)
+    plt.savefig(picturepath)
+    plt.show()
 
 
 if __name__ == '__main__':
