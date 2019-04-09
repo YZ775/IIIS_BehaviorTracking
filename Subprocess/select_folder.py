@@ -1,5 +1,6 @@
 import os, tkinter, tkinter.filedialog, tkinter.messagebox
 
+# こっちがムービーファイルの場所選択
 def output(folder):
     path = os.getcwd()
     movie_dat = os.path.join(path, "movie_list.dat")
@@ -22,7 +23,10 @@ tkinter.messagebox.showinfo('Motion Analyzer of Shock','Please select a folder.'
 folder = tkinter.filedialog.askdirectory()
 
 # 処理ファイル名の出力
-tkinter.messagebox.showinfo('',folder)
-# print(folder)
+# tkinter.messagebox.showinfo('',folder)
+print(folder)
 
 output(folder)
+
+# こっちがlogafterの出力先
+import select_output_folder
