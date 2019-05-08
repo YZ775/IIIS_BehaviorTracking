@@ -31,9 +31,16 @@ def IsSleep():
 
 # フレーム差分の計算
 def frame_sub(img1, img2, img3, th):
+    #フレームの正規化
+    out1 = cv2.equalizeHist(img1)
+    out2 = cv2.equalizeHist(img2)
+    out3 = cv2.equalizeHist(img3)
+
+
+
     # フレームの絶対差分
-    diff1 = cv2.absdiff(img1, img2)
-    diff2 = cv2.absdiff(img2, img3)
+    diff1 = cv2.absdiff(out1, out2)
+    diff2 = cv2.absdiff(out2, out3)
 
     # 2つの差分画像の論理積
     diff = cv2.bitwise_xor(diff1, diff2)
@@ -76,27 +83,27 @@ def ShowPrev(path):
 
     while(cap_prev.isOpened()):
         key = cv2.waitKey(1)&0xff
-        if key == ord('d'):
+        if key == ord('f'):
             ChangeBar(ofst+100)
             cv2.setTrackbarPos("Time[ms]","prev", ofst)
-            print(ofst)
+            #print(ofst)
 
         if key == ord('a'):
             ChangeBar(ofst-100)
             cv2.setTrackbarPos("Time[ms]","prev", ofst)
-            print(ofst)
+            #print(ofst)
 
-        if key == ord('w'):
+        if key == ord('d'):
             ChangeBar(ofst+10)
             cv2.setTrackbarPos("Time[ms]","prev", ofst)
-            print(ofst)
+            #print(ofst)
 
         if key == ord('s'):
             ChangeBar(ofst-10)
             cv2.setTrackbarPos("Time[ms]","prev", ofst)
-            print(ofst)
+            #print(ofst)
 
-        if key == ord('q'):
+        if key == 13:
             break
 
     cap_prev.release()
@@ -267,9 +274,16 @@ def main(movie_path):
 
     select = 1
     p = movie_path
+    print("\n")
 
-    print("########Operation Key############")
-    print("w: +10[ms] a:-100[ms] s:-10[ms] d:+100[ms]")
+    print("###############################################################")
+    print("set shock point by using seekbar and keyboard\n")
+
+    print("--------------------    Operation Keys    -------------------")
+    print("|\t\t    Enter : Done\t\t\t\t|")
+    print("|A :-100[ms]\tS : -10[ms]\tD : +10[ms]\tF : +100[ms]\t|")
+    print("|    <<\t\t    <\t\t    >\t\t    >>\t\t|")
+    print("------------------------------------------------------------------")
     shift_time = ShowPrev(p)
     cap = cv2.VideoCapture(p) #動画読み込み 動画の名前
     print(shift_time)
@@ -289,6 +303,8 @@ def main(movie_path):
 
         frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
         h, w = frame1.shape
+
+        cv2.imwrite("sample.jpg", frame2)
     except:
         _ = 0
 
@@ -330,6 +346,7 @@ def main(movie_path):
         """
         #print(area)
         showframe = nextframe.copy()
+        showfrmae = (showframe - np.mean(showframe))/np.std(showframe)*16+64
 
 
         if(sleepcnt >= 10 and sleepcnt < 20): #フリーズ
