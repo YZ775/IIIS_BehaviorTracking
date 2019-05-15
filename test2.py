@@ -574,7 +574,11 @@ def main(movie_path):
 
     print("{0} {1}".format(Before_shock_sum, After_shock_sum))
 
-    change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
+    try:
+        change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
+    except:
+        change_rate = 0
+        
     print(change_rate)
     #########################################################
 
