@@ -13,6 +13,7 @@ ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 th_param = 400 #マスクの閾値
 
 
+#####################################
 def IsSleep():
     global sleepcnt
     global ContinueFlag
@@ -26,10 +27,13 @@ def IsSleep():
         t=threading.Timer(0.1,IsSleep)
         t.setDaemon(True)
         t.start()
+#####################################
 
 
 
+#####################################
 # フレーム差分の計算
+
 def frame_sub(img1, img2, img3, th):
     #フレームの正規化
     out1 = cv2.equalizeHist(img1)
@@ -53,18 +57,22 @@ def frame_sub(img1, img2, img3, th):
     mask = cv2.medianBlur(diff, 3)
 
     return  mask
+#####################################
 
 
 
+#####################################
 ofst = 0
 fps = 0
 def ShowPrev(path):
     global ofst
+
     def ChangeBar(val):
         global ofst
         ofst = val
         cap_prev.set(0,val)
         frame = cap_prev.read()[1]
+
         try:
             cv2.imshow("prev",frame)
         except:
@@ -74,6 +82,7 @@ def ShowPrev(path):
     video_frame = cap_prev.get(cv2.CAP_PROP_FRAME_COUNT) # フレーム数を取得する
     video_fps = cap_prev.get(cv2.CAP_PROP_FPS)           # FPS を取得する
     video_len_sec = int((video_frame / video_fps)*1000) #長さ[ms]を取得
+
 
     cap_prev.set(0,0*1000)
     cv2.namedWindow('prev')
@@ -109,6 +118,9 @@ def ShowPrev(path):
     cap_prev.release()
     cv2.destroyAllWindows()
     return ofst
+#####################################
+
+
 
 #####################################
 #前回の座標値を記憶する変数
@@ -118,12 +130,14 @@ x = 0
 y = 0
 flag_old = 0
 flag_new = 0
-
 folder_path = ""
 
-def logger(f_path, day_name, b_s_s, a_s_s, late):
+#####################################
+
+#出力ファイルにmotion_indexを書き込む
+def logger(day_name, b_s_s, a_s_s, late, plott, framer):
     #ログの処理
-    f_before = open(f_path, 'r')
+    #f_before = open(f_path, 'r')
 
     global folder_path
 
@@ -152,6 +166,8 @@ def logger(f_path, day_name, b_s_s, a_s_s, late):
 
     f_after  = open(text, 'w')
 
+    """
+    5/15
     l = f_before.readlines()
 
     #rev_l = reversed(l)
@@ -213,6 +229,7 @@ def logger(f_path, day_name, b_s_s, a_s_s, late):
         f_after.write(logging)
 
     f_after.write("\n")
+    """
 
     f_after.write("Before_Shock Sum of Motion Index: ")
     f_after.write(str(b_s_s))
@@ -226,13 +243,38 @@ def logger(f_path, day_name, b_s_s, a_s_s, late):
     f_after.write(str(late))
     f_after.write("\n")
 
+    f_after.write("#")
+    f_after.write("FrameNumber")
+    f_after.write(" | ")
+    f_after.write("(X,Y)")
+    f_after.write(" | ")
+    f_after.write("wake/sleep/freez")
+    f_after.write("\n")
 
 
-    f_before.close()
+    count = 0
+    for i, framecount in enumerate(framer):
+        f_after.write(str(framecount))
+        f_after.write(" | ")
+
+        xplot = plott[count]
+        yplot = plott[count+1]
+        judge = plott[count+2]
+
+        f_after.write(str(xplot))
+        f_after.write(" | ")
+        f_after.write(str(yplot))
+        f_after.write(" | ")
+        f_after.write(str(judge))
+        f_after.write("\n")
+
+        count = count +3
     f_after.close()
+#####################################
 
 
 
+#####################################
 def main(movie_path):
 
     global before_x #グローバル変数であることを宣言
@@ -243,15 +285,20 @@ def main(movie_path):
     global flag_new
     global sleepcnt
     global ContinueFlag
+
     #移動量保存用リスト
     dist_list = []
     #フレーム数保存用リスト
     ran_list = []
-
+    #座標保存用リスト
+    plot_list = []
 
     todaydetail = datetime.datetime.today()
+    #loggerへの引数
     todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
 
+    """
+    5/15
     os.makedirs("log", exist_ok=True)
     filename= "log/MousePos_" + todaydetail + ".txt"
     print("log file = ",filename)
@@ -266,12 +313,15 @@ def main(movie_path):
     f.write(" | ")
     f.write("wake/sleep")
     f.write("\n")
+    """
 
     # print("Enter Threshold　parametar")
     # th_param = int(input("default:400 \n >>"))
     # print("\n")
-    th_param = 400 # 仮です。
 
+    #動画設定とショックポイントを設定
+    ##############################################################################
+    th_param = 400 # 仮です。
     select = 1
     p = movie_path
     print("\n")
@@ -289,9 +339,7 @@ def main(movie_path):
     print(shift_time)
     cap.set(0,shift_time - 2000) #2000ms前からスタート
     video_fps = cap.get(cv2.CAP_PROP_FPS)           # FPS を取得する
-
-
-
+    ##############################################################################
 
 
     try:
@@ -304,18 +352,18 @@ def main(movie_path):
         frame3 = cv2.cvtColor(nextframe, cv2.COLOR_RGB2GRAY)
         h, w = frame1.shape
 
-        cv2.imwrite("sample.jpg", frame2)
+        #cv2.imwrite("sample.jpg", frame2)
     except:
         _ = 0
-
-
-
 
 
     frame_number = 0
     #移動量用のフラッグ設定
     flag_init = 0 #初回フレーム判定のためのフラグ
 
+
+    #マップ描画用
+    ##############################################################################
     plt.subplot(2,1,1)
     plt.plot(0,0,'b',marker='.')##画像の右端の点を白でプロットすることでグラフの描画エリアと画像サイズを合わせる
     plt.plot(w,0,'b',marker='.')
@@ -326,54 +374,52 @@ def main(movie_path):
     plt.plot([0,0],[0,-1*h],'b',linewidth = 0.5)
     plt.plot([0,w],[-1*h,-1*h],'b',linewidth = 0.5)
     plt.plot([w,w],[0,-1*h],'b',linewidth = 0.5)
+    ##############################################################################
 
 
-
+    ##############################################################################
+    #メイン処理
 
     while(frame_number < video_fps * 4):
         time_stamp = datetime.datetime.now()
         frame_number += 1
         # フレーム間差分を計算
         mask = frame_sub(frame1, frame2, frame3, th=40)
+        #マスクの白部分をカウントする
         area = cv2.countNonZero(mask)
-        """
-        #輪郭検出
-        image, contours, hierarchy = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        cnt = contours[0]
-
-        #マスクの面積計算
-        area = cv2.contourArea(cnt)
-        """
-        #print(area)
         showframe = nextframe.copy()
-        showfrmae = (showframe - np.mean(showframe))/np.std(showframe)*16+64
+        showframe = cv2.cvtColor(showframe,cv2.COLOR_RGB2GRAY)
+        showframe = cv2.equalizeHist(showframe)
+        #showfrmae = (showframe - np.mean(showframe))/np.std(showframe)*16+64
 
 
-        if(sleepcnt >= 10 and sleepcnt < 20): #フリーズ
+        #フリーズとスリープ判定
+        ######################################################
+        if(sleepcnt >= 10 and sleepcnt < 20):
             #サブプロットに変更
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'y',marker='.',markersize=7)#黄丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,255),-1) #黄丸をカメラ映像に表示
+
         elif(sleepcnt >= 20): #寝てる
             plt.subplot(2,1,1)
             plt.plot(x,-1*y,'g',marker='.',markersize=7)#緑丸をプロット
             cv2.circle(showframe, (x,y), 15, (0,255,0),-1) #緑丸をカメラ映像に表示
+        #######################################################
 
 
-
+        #動きがある場合
+        ######################################################
         if area > th_param: #面積が閾値より大きければ、重心の座標を更新
             sleepcnt = 0 #眠ってるカウントをリセット
             flag_init = flag_init + 1
             mu = cv2.moments(mask, False)
+
             try:
                 x,y = int(mu["m10"]/mu["m00"]), int(mu["m01"]/mu["m00"])
                 #移動量計算
                 distance = np.sqrt((x-before_x)**2+(y-before_y)**2)
-                #before_x, before_yが設定されていない状態（一番初め）
-                #if flag_moment == 1:
-                 #   distance = 0
-                    #フラッグ消す
-                  #  flag_moment = 0
+
                 #リストにデータ追加
                 if(flag_init >= 0):
                     dist_list.append(distance)
@@ -383,19 +429,23 @@ def main(movie_path):
                     plt.subplot(2,1,1)
                     plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
                     cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
-                    f.write(str(frame_number))
-                    f.write(" | ")
-                    if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
-                        f.write("null")
-                    else :
-                        f.write(str(time_stamp))
-                    f.write(" | ")
-                    f.write(str(x))
-                    f.write(",")
-                    f.write(str(y))
-                    f.write(" | ")
-                    f.write("wake")
-                    f.write("\n")
+
+                    #f.write(str(frame_number))
+                    #f.write(" | ")
+                    #if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
+                    #    f.write("null")
+                    #else :
+                    #    f.write(str(time_stamp))
+                    #f.write(" | ")
+                    plot_list.append(str(x))
+                    #f.write(str(x))
+                    #f.write(",")
+                    plot_list.append(str(y))
+                    #f.write(str(y))
+                    #f.write(" | ")
+                    #f.write("wake")
+                    plot_list.append("wake")
+                    #f.write("\n")
 
 
                     #print(flag_old,flag_new)
@@ -407,42 +457,56 @@ def main(movie_path):
             except:
                 _ = 0
 
+        ######################################################
+
+
+        #動きがない場合
+        ######################################################
+
         else :   #面積が閾値より小さければ、前回の座標を表示
             if(flag_init >= 1):
                 cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
-                f.write(str(frame_number))
-                f.write(" | ")
+                #f.write(str(frame_number))
+                #f.write(" | ")
                 #リストにデータ追加
                 distance = 0
                 dist_list.append(distance)
                 ran_list.append(frame_number)
-                if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
-                    f.write("null")
 
-                else:
-                    f.write(str(time_stamp))
+                #if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
+                #    f.write("null")
+                #else:
+                #    f.write(str(time_stamp))
+                #f.write(" | ")
+                #f.write(str(before_x))
+                plot_list.append(before_x)
+                #f.write(",")
+                #f.write(str(before_y))
+                #f.write(" | ")
+                plot_list.append(before_y)
 
-                f.write(" | ")
-                f.write(str(before_x))
-                f.write(",")
-                f.write(str(before_y))
-                f.write(" | ")
+
                 if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
-                    f.write("freez")
+                    #f.write("freez")
+                    plot_list.append("freez")
                 elif(sleepcnt >= 20):
-                    f.write("sleep")
+                    plot_list.append("sleep")
+                    #f.write("sleep")
                 else:
-                    f.write("wake")
+                    plot_list.append("wake")
+                    #f.write("wake")
 
-                f.write("\n")
+                #f.write("\n")
 
             flag_old = flag_new #動いてるかどうかフラグ更新
             flag_new = 1
-                #print(flag_old,flag_new)
+
+        ######################################################
+
+
 
         # 結果を表示
         cv2.imshow("showframe", showframe)
-        #cv2.imshow("Mask", mask)
 
         try:
         # 3枚のフレームを更新
@@ -457,19 +521,24 @@ def main(movie_path):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    f.close()
+    #f.close()
     ContinueFlag = 0
     dist_list[0] = 0
     #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
+
     #サブプロットで移動量を描画　横軸はフレーム数
     plt.subplot(2,1,2)
     plt.plot(ran_list, dist_list)
 
-    #logger(filename, todaydetail)
-    print(dist_list)
-    #print(len(dist_list))
+    ##############################################################################
+    #メイン処理を終了
+
+
+
+    #MotionIndexを計算
+    ######################################################
     maxxxx = max(dist_list)
     shock_point = 0
 
@@ -507,21 +576,30 @@ def main(movie_path):
 
     change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
     print(change_rate)
+    #########################################################
 
-    logger(filename, todaydetail, Before_shock_sum, After_shock_sum, change_rate)
-
+    #ログに書き込み作業
+    logger(todaydetail, Before_shock_sum, After_shock_sum, change_rate, plot_list, ran_list)
+    #outputfolderに画像を出力
     picturepath = folder_path + "/" + todaydetail + ".png"
-    print(picturepath)
+    #print(picturepath)
     plt.savefig(picturepath)
     plt.show()
 
 
+
+
+
+
+##############################################################################
 if __name__ == '__main__':
+
     #動画取得
     os.makedirs("Subprocess", exist_ok=True)
     pathr = "Subprocess/movie_list.dat"
     files = open(pathr)
     movielist = []
+
     for line in files:
         newl = line.strip()
         if newl == "":
@@ -530,8 +608,8 @@ if __name__ == '__main__':
             movielist.append(newl)
 
 
-    print("length {}".format(len(movielist)))
-    print("list {}".format(movielist))
+    #print("length {}".format(len(movielist)))
+    #print("list {}".format(movielist))
 
     #バッチ処理
     for name in movielist:
@@ -539,3 +617,4 @@ if __name__ == '__main__':
         t.setDaemon(True)
         t.start()
         main(name)
+##############################################################################
