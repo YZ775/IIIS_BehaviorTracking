@@ -523,7 +523,11 @@ def main(movie_path):
 
     #f.close()
     ContinueFlag = 0
-    dist_list[0] = 0
+    try:
+        dist_list[0] = 0
+    except:
+        print("検出不能")
+        continue
     #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
@@ -578,7 +582,7 @@ def main(movie_path):
         change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
     except:
         change_rate = 0
-        
+
     print(change_rate)
     #########################################################
 
