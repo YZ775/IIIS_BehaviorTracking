@@ -8,6 +8,11 @@ import sys
 import os
 import re
 
+#####可能性 matplotlib # WARNING:
+#MatplotlibDeprecationWarning:
+#Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.
+#In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
+
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 th_param = 400 #マスクの閾値
@@ -135,7 +140,7 @@ folder_path = ""
 #####################################
 
 #出力ファイルにmotion_indexを書き込む
-def logger(day_name, b_s_s, a_s_s, late, plott, framer):
+def logger(movie_info, b_s_s, a_s_s, late, plott, framer):
     #ログの処理
     #f_before = open(f_path, 'r')
 
@@ -161,7 +166,9 @@ def logger(day_name, b_s_s, a_s_s, late, plott, framer):
 
     # os.makedirs("log_after", exist_ok=True)
     #text = os.path.join(folder_path,"after-", day_name, ".txt")
-    text = folder_path + "/after-" + day_name + ".txt"
+    #動画ファイル名を抽出 -- マウスのデータ
+
+    text = folder_path + "/after-" + movie_info + ".txt"
     print(folder_path)
 
     f_after  = open(text, 'w')
@@ -293,27 +300,9 @@ def main(movie_path):
     #座標保存用リスト
     plot_list = []
 
-    todaydetail = datetime.datetime.today()
+    #todaydetail = datetime.datetime.today()
     #loggerへの引数
-    todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
-
-    """
-    5/15
-    os.makedirs("log", exist_ok=True)
-    filename= "log/MousePos_" + todaydetail + ".txt"
-    print("log file = ",filename)
-    f = open(filename,'w') #データ保存用ファイル
-
-    f.write("#")
-    f.write("FrameNumber")
-    f.write(" | ")
-    f.write("Time")
-    f.write(" | ")
-    f.write("(X,Y)")
-    f.write(" | ")
-    f.write("wake/sleep")
-    f.write("\n")
-    """
+    #todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
 
     # print("Enter Threshold　parametar")
     # th_param = int(input("default:400 \n >>"))
@@ -324,6 +313,13 @@ def main(movie_path):
     th_param = 400 # 仮です。
     select = 1
     p = movie_path
+
+    #動画のパスのみを抽出する
+    movie_data = re.split('[\/,"\\"]',p)
+    movie_data_ex = movie_data[-1]
+    exex = movie_data_ex.split("\\")
+    comp_path = exex[-1]
+
     print("\n")
 
     print("###############################################################")
@@ -379,8 +375,8 @@ def main(movie_path):
 
     ##############################################################################
     #メイン処理
-
-    while(frame_number < video_fps * 4):
+    while(cap.get(cv2.CAP_PROP_POS_MSEC) < shift_time + 2000):
+    #while(frame_number < video_fps * 4):
         time_stamp = datetime.datetime.now()
         frame_number += 1
         # フレーム間差分を計算
@@ -520,14 +516,16 @@ def main(movie_path):
         # qキーが押されたら途中終了
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+        cv2.waitKey(10)
 
     #f.close()
     ContinueFlag = 0
+    calcurate_flag = 0
     try:
         dist_list[0] = 0
     except:
-        print("検出不能")
-        continue
+        calcurate_flag = 1
+        print("No shock point")
     #t.cancel()
     cap.release()
     cv2.destroyAllWindows()
@@ -543,56 +541,59 @@ def main(movie_path):
 
     #MotionIndexを計算
     ######################################################
-    maxxxx = max(dist_list)
-    shock_point = 0
+    if calcurate_flag == 0:
+        maxxxx = max(dist_list)
+        shock_point = 0
 
 
-    for i,j in enumerate(dist_list):
-        #print("{0} {1}".format(i,j))
-        #print(type(j))
-        if j == maxxxx:
-            if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
-                shock_point = i
-            else:
-                video_fps = int(video_fps)
-                #print(video_fps)
-                shock_point = len(dist_list) - video_fps *2
+        for i,j in enumerate(dist_list):
+            #print("{0} {1}".format(i,j))
+            #print(type(j))
+            if j == maxxxx:
+                if len(dist_list)/2 -3 <= i <= len(dist_list)/2+3:
+                    shock_point = i
+                else:
+                    video_fps = int(video_fps)
+                    #print(video_fps)
+                    shock_point = len(dist_list) - video_fps *2
 
-    #ショックのフレームナンバーを取得
-    #print(shock_point)
+        #ショックのフレームナンバーを取得
+        #print(shock_point)
 
-    flo_dist = [float(s) for s in dist_list]
+        flo_dist = [float(s) for s in dist_list]
 
-    After_shock_sum = 0
-    Before_shock_sum = 0
+        After_shock_sum = 0
+        Before_shock_sum = 0
 
-    for x in range(shock_point):
-        #print(flo_dist[x])
-        Before_shock_sum += flo_dist[x]
+        for x in range(shock_point):
+            #print(flo_dist[x])
+            Before_shock_sum += flo_dist[x]
 
-    #print("Check")
+        #print("Check")
 
-    for y in range(shock_point, len(dist_list)):
-        #print(flo_dist[y])
-        After_shock_sum += flo_dist[y]
+        for y in range(shock_point, len(dist_list)):
+            #print(flo_dist[y])
+            After_shock_sum += flo_dist[y]
 
-    print("{0} {1}".format(Before_shock_sum, After_shock_sum))
+        print("{0} {1}".format(Before_shock_sum, After_shock_sum))
 
-    try:
-        change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
-    except:
-        change_rate = 0
+        try:
+            change_rate = (After_shock_sum-Before_shock_sum)/(After_shock_sum+Before_shock_sum)
+        except:
+            change_rate = 0
 
-    print(change_rate)
-    #########################################################
+        print(change_rate)
+        #########################################################
 
-    #ログに書き込み作業
-    logger(todaydetail, Before_shock_sum, After_shock_sum, change_rate, plot_list, ran_list)
-    #outputfolderに画像を出力
-    picturepath = folder_path + "/" + todaydetail + ".png"
-    #print(picturepath)
-    plt.savefig(picturepath)
-    plt.show()
+        #ログに書き込み作業
+        logger(comp_path, Before_shock_sum, After_shock_sum, change_rate, plot_list, ran_list)
+        #outputfolderに画像を出力
+        picturepath = folder_path + "/" + comp_path + ".png"
+        #print(picturepath)
+        plt.savefig(picturepath)
+        plt.show()
+    else:
+        print("No Calucurate Data")
 
 
 
