@@ -86,7 +86,11 @@ def ShowPrev(path):
     cap_prev = cv2.VideoCapture(path)
     video_frame = cap_prev.get(cv2.CAP_PROP_FRAME_COUNT) # フレーム数を取得する
     video_fps = cap_prev.get(cv2.CAP_PROP_FPS)           # FPS を取得する
-    video_len_sec = int((video_frame / video_fps)*1000) #長さ[ms]を取得
+    try:
+        video_len_sec = int((video_frame / video_fps)*1000) #長さ[ms]を取得
+
+    except:
+        print("division error this movie file can not analyze")
 
 
     cap_prev.set(0,0*1000)
@@ -279,6 +283,16 @@ def logger(movie_info, b_s_s, a_s_s, late, plott, framer):
     f_after.close()
 #####################################
 
+#####################################
+#ネズミの初期位置をマウスの座標で設定する関数
+
+
+def mouse_event(event,x,y,flags,param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        #初期値を設定する
+        before_x = x
+        before_y = y
+        print("{} {}".format(before_x, before_y))
 
 
 #####################################
@@ -357,6 +371,16 @@ def main(movie_path):
     #移動量用のフラッグ設定
     flag_init = 0 #初回フレーム判定のためのフラグ
 
+    #初期座標設定
+    cv2.imshow("initialize first position", frame1)
+    while True:
+        key = cv2.waitKey(1)&0xff
+        cv2.setMouseCallback("initialize first position",mouse_event)
+        #print("{} {}".format(before_x, before_y))
+
+        if key == 13:
+            break
+    cv2.destroyAllWindows()
 
     #マップ描画用
     ##############################################################################
@@ -375,8 +399,12 @@ def main(movie_path):
 
     ##############################################################################
     #メイン処理
+    #print("set time {}\n".format(cap.set(0,shift_time - 2000)))
+    #print("get time {}\n".format(cap.get(cv2.CAP_PROP_POS_MSEC)))
+    #print("finish time {}\n".format(shift_time + 2000))
+
     while(cap.get(cv2.CAP_PROP_POS_MSEC) < shift_time + 2000):
-    #while(frame_number < video_fps * 4):
+
         time_stamp = datetime.datetime.now()
         frame_number += 1
         # フレーム間差分を計算
@@ -417,31 +445,31 @@ def main(movie_path):
                 distance = np.sqrt((x-before_x)**2+(y-before_y)**2)
 
                 #リストにデータ追加
-                if(flag_init >= 0):
-                    dist_list.append(distance)
-                    ran_list.append(frame_number)
-                    plt.subplot(2,1,1)
-                    plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
-                    plt.subplot(2,1,1)
-                    plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
-                    cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
+                #if(flag_init >= 0):
+                dist_list.append(distance)
+                ran_list.append(frame_number)
+                plt.subplot(2,1,1)
+                plt.plot(x,-1*y,'r',marker='.',markersize=3) #サンプリング点をプロット
+                plt.subplot(2,1,1)
+                plt.plot([before_x,x],[-1*before_y,-1*y],'k',linewidth = 0.5,alpha = 0.5) #線をプロット
+                cv2.circle(showframe, (x,y), 7, (0,0,255),-1)
 
-                    #f.write(str(frame_number))
-                    #f.write(" | ")
-                    #if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
-                    #    f.write("null")
-                    #else :
-                    #    f.write(str(time_stamp))
-                    #f.write(" | ")
-                    plot_list.append(str(x))
-                    #f.write(str(x))
-                    #f.write(",")
-                    plot_list.append(str(y))
-                    #f.write(str(y))
-                    #f.write(" | ")
-                    #f.write("wake")
-                    plot_list.append("wake")
-                    #f.write("\n")
+                #f.write(str(frame_number))
+                #f.write(" | ")
+                #if (select == "1"):#ビデオ読み込みの場合，タイムスタンプはnull
+                #    f.write("null")
+                #else :
+                #    f.write(str(time_stamp))
+                #f.write(" | ")
+                plot_list.append(str(x))
+                #f.write(str(x))
+                #f.write(",")
+                plot_list.append(str(y))
+                #f.write(str(y))
+                #f.write(" | ")
+                #f.write("wake")
+                plot_list.append("wake")
+                #f.write("\n")
 
 
                     #print(flag_old,flag_new)
@@ -460,37 +488,37 @@ def main(movie_path):
         ######################################################
 
         else :   #面積が閾値より小さければ、前回の座標を表示
-            if(flag_init >= 1):
-                cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
-                #f.write(str(frame_number))
-                #f.write(" | ")
-                #リストにデータ追加
-                distance = 0
-                dist_list.append(distance)
-                ran_list.append(frame_number)
+            #if(flag_init >= 1):
+            cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
+            #f.write(str(frame_number))
+            #f.write(" | ")
+            #リストにデータ追加
+            distance = 0
+            dist_list.append(distance)
+            ran_list.append(frame_number)
 
-                #if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
-                #    f.write("null")
-                #else:
-                #    f.write(str(time_stamp))
-                #f.write(" | ")
-                #f.write(str(before_x))
-                plot_list.append(before_x)
-                #f.write(",")
-                #f.write(str(before_y))
-                #f.write(" | ")
-                plot_list.append(before_y)
+            #if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
+            #    f.write("null")
+            #else:
+            #    f.write(str(time_stamp))
+            #f.write(" | ")
+            #f.write(str(before_x))
+            plot_list.append(before_x)
+            #f.write(",")
+            #f.write(str(before_y))
+            #f.write(" | ")
+            plot_list.append(before_y)
 
 
-                if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
-                    #f.write("freez")
-                    plot_list.append("freez")
-                elif(sleepcnt >= 20):
-                    plot_list.append("sleep")
-                    #f.write("sleep")
-                else:
-                    plot_list.append("wake")
-                    #f.write("wake")
+            if(sleepcnt >= 10 and sleepcnt < 20): #寝てたら
+                #f.write("freez")
+                plot_list.append("freez")
+            elif(sleepcnt >= 20):
+                plot_list.append("sleep")
+                #f.write("sleep")
+            else:
+                plot_list.append("wake")
+                #f.write("wake")
 
                 #f.write("\n")
 
@@ -541,6 +569,18 @@ def main(movie_path):
 
     #MotionIndexを計算
     ######################################################
+    #計算前に飛び値が存在した場合は，飛び値があることを明示して消す．
+    for i in range(20):
+        if dist_list[i] > 80:
+            dist_list[i] = 0
+            print("exist Outlier, eliminate")
+
+        elif dist_list[i] > 40:
+            dist_list[i] = dist_list[i] - 20
+            print("detect posibility of Outlier, decrease value")
+
+
+
     if calcurate_flag == 0:
         maxxxx = max(dist_list)
         shock_point = 0
