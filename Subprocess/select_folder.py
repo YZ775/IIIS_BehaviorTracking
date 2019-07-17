@@ -19,7 +19,7 @@ root = tkinter.Tk()
 root.withdraw()
 fTyp = [("","*")]
 iDir = os.path.abspath(os.path.dirname(__file__))
-tkinter.messagebox.showinfo('Motion Analyzer of Shock','Please select a folder.')
+tkinter.messagebox.showinfo('Motion Analyzer of Shock','Please select a video folder.')
 folder = tkinter.filedialog.askdirectory()
 
 # 処理ファイル名の出力
