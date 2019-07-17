@@ -185,7 +185,6 @@ def logger(movie_info, b_s_s, a_s_s, late, plott, framer):
     f_after.write(" | ")
     f_after.write("(X,Y)")
     f_after.write(" | ")
-    f_after.write("wake/sleep/freez")
     f_after.write("\n")
 
 
@@ -202,7 +201,7 @@ def logger(movie_info, b_s_s, a_s_s, late, plott, framer):
         f_after.write(" | ")
         f_after.write(str(yplot))
         f_after.write(" | ")
-        f_after.write(str(judge))
+        #f_after.write(str(judge))
         f_after.write("\n")
 
         count = count +3
