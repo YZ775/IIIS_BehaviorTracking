@@ -7,13 +7,11 @@ import threading
 import sys
 import os
 import re
-from time import sleep
 
 
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
 th_param = 400 #マスクの閾値
-
 
 #####################################
 def IsSleep():
@@ -91,31 +89,31 @@ def ShowPrev(path):
 
 
     cap_prev.set(0,0*1000)
-    cv2.namedWindow('prev')
-    cv2.createTrackbar("Time[ms]", "prev", 0, video_len_sec, ChangeBar)
+    cv2.namedWindow('shock time')
+    cv2.createTrackbar("Time[ms]", "shock time", 0, video_len_sec, ChangeBar)
     frame = cap_prev.read()[1]
-    cv2.imshow("prev",frame)
+    cv2.imshow("shock time",frame)
 
     while(cap_prev.isOpened()):
         key = cv2.waitKey(1)&0xff
         if key == ord('f'):
             ChangeBar(ofst+100)
-            cv2.setTrackbarPos("Time[ms]","prev", ofst)
+            cv2.setTrackbarPos("Time[ms]","shock time", ofst)
             #print(ofst)
 
         if key == ord('a'):
             ChangeBar(ofst-100)
-            cv2.setTrackbarPos("Time[ms]","prev", ofst)
+            cv2.setTrackbarPos("Time[ms]","shock time", ofst)
             #print(ofst)
 
         if key == ord('d'):
             ChangeBar(ofst+10)
-            cv2.setTrackbarPos("Time[ms]","prev", ofst)
+            cv2.setTrackbarPos("Time[ms]","shock time", ofst)
             #print(ofst)
 
         if key == ord('s'):
             ChangeBar(ofst-10)
-            cv2.setTrackbarPos("Time[ms]","prev", ofst)
+            cv2.setTrackbarPos("Time[ms]","shock time", ofst)
             #print(ofst)
 
         if key == 13:
@@ -581,4 +579,5 @@ if __name__ == '__main__':
         t.setDaemon(True)
         t.start()
         main(name)
+        print("Complete")
 ##############################################################################
