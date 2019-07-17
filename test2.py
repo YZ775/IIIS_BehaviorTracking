@@ -7,11 +7,8 @@ import threading
 import sys
 import os
 import re
+from time import sleep
 
-#####可能性 matplotlib # WARNING:
-#MatplotlibDeprecationWarning:
-#Adding an axes using the same arguments as a previous axes currently reuses the earlier instance.
-#In a future version, a new instance will always be created and returned.  Meanwhile, this warning can be suppressed, and the future behavior ensured, by passing a unique label to each axes instance.
 
 sleepcnt = 0  #タイマー割り込み時に動いていない場合をカウントしていく
 ContinueFlag = 1 #タイマー割り込みを続けるかどうかのフラグ
@@ -79,7 +76,7 @@ def ShowPrev(path):
         frame = cap_prev.read()[1]
 
         try:
-            cv2.imshow("prev",frame)
+            cv2.imshow("shock time",frame)
         except:
             print("end of video")
 
@@ -168,79 +165,10 @@ def logger(movie_info, b_s_s, a_s_s, late, plott, framer):
         folder_path = os.path.join("log_after")
 
 
-    # os.makedirs("log_after", exist_ok=True)
-    #text = os.path.join(folder_path,"after-", day_name, ".txt")
-    #動画ファイル名を抽出 -- マウスのデータ
-
     text = folder_path + "/after-" + movie_info + ".txt"
     print(folder_path)
 
     f_after  = open(text, 'w')
-
-    """
-    5/15
-    l = f_before.readlines()
-
-    #rev_l = reversed(l)
-    l.reverse() #リストの反転
-    l_flag = 0
-    #座標
-    lx_bef = 0
-    ly_bef = 0
-
-    new_data = []
-
-    for data in l:
-        data_s = data.split("|") #リストを分割
-        #print(data_s)
-
-        #フリーズしている
-        if l_flag == 1:
-            #座標値を取得
-            data_ss_p = data_s[2]
-            data_z_p = data_ss_p.split(",")
-            #print("{0} {1} {2} {3}".format(lx_bef, ly_bef, data_z_p[0], data_z_p[1]))
-
-            #前回の座標値と同じ
-            if lx_bef == data_z_p[0] and ly_bef == data_z_p[1]:
-
-                text_a = "{}|{}|{}| {}"
-                text_b = text_a.format(data_s[0], data_s[1], data_s[2], "freez\n")
-                #f.write(text_b) 新しいリストに入力
-                new_data.append(text_b)
-
-            #座標値が違う
-            else:
-                l_flag = 0
-                #新しいリストに入力
-                new_data.append(data)
-
-        #フリーズしていない
-        else:
-            if re.search('freez', data_s[3]):
-                #フラグを立てる
-                l_flag = 1
-                #print("check")
-
-                #座標値を保存
-                data_ss = data_s[2]
-                data_z = data_ss.split(",")
-                #print(data_z)
-                lx_bef = data_z[0]
-                ly_bef = data_z[1]
-                #新しいリストに入力
-                new_data.append(data)
-            #問題ない
-            else:
-                new_data.append(data)
-
-    new_data.reverse()
-    #print(new_data)
-    for logging in new_data:
-        f_after.write(logging)
-
-    f_after.write("\n")
-    """
 
     f_after.write("Before_Shock Sum of Motion Index: ")
     f_after.write(str(b_s_s))
@@ -283,16 +211,24 @@ def logger(movie_info, b_s_s, a_s_s, late, plott, framer):
     f_after.close()
 #####################################
 
+
 #####################################
 #ネズミの初期位置をマウスの座標で設定する関数
 
 
 def mouse_event(event,x,y,flags,param):
+    global before_x
+    global before_y
+
     if event == cv2.EVENT_LBUTTONDOWN:
         #初期値を設定する
         before_x = x
         before_y = y
         print("{} {}".format(before_x, before_y))
+
+#####################################
+
+
 
 
 #####################################
@@ -313,14 +249,6 @@ def main(movie_path):
     ran_list = []
     #座標保存用リスト
     plot_list = []
-
-    #todaydetail = datetime.datetime.today()
-    #loggerへの引数
-    #todaydetail = str(todaydetail.year) + str(todaydetail.month) + str(todaydetail.day) + str(todaydetail.hour) + str(todaydetail.minute) + str(todaydetail.second)
-
-    # print("Enter Threshold　parametar")
-    # th_param = int(input("default:400 \n >>"))
-    # print("\n")
 
     #動画設定とショックポイントを設定
     ##############################################################################
@@ -399,9 +327,7 @@ def main(movie_path):
 
     ##############################################################################
     #メイン処理
-    #print("set time {}\n".format(cap.set(0,shift_time - 2000)))
-    #print("get time {}\n".format(cap.get(cv2.CAP_PROP_POS_MSEC)))
-    #print("finish time {}\n".format(shift_time + 2000))
+    print("init position is {} {}".format(before_x,before_y))
 
     while(cap.get(cv2.CAP_PROP_POS_MSEC) < shift_time + 2000):
 
@@ -414,8 +340,6 @@ def main(movie_path):
         showframe = nextframe.copy()
         showframe = cv2.cvtColor(showframe,cv2.COLOR_RGB2GRAY)
         showframe = cv2.equalizeHist(showframe)
-        #showfrmae = (showframe - np.mean(showframe))/np.std(showframe)*16+64
-
 
         #フリーズとスリープ判定
         ######################################################
@@ -490,23 +414,12 @@ def main(movie_path):
         else :   #面積が閾値より小さければ、前回の座標を表示
             #if(flag_init >= 1):
             cv2.circle(showframe, (before_x,before_y), 7, (255,0,0),-1)
-            #f.write(str(frame_number))
-            #f.write(" | ")
             #リストにデータ追加
             distance = 0
             dist_list.append(distance)
             ran_list.append(frame_number)
 
-            #if (select == "1"): #ビデオ読み込みの場合，タイムスタンプはnull
-            #    f.write("null")
-            #else:
-            #    f.write(str(time_stamp))
-            #f.write(" | ")
-            #f.write(str(before_x))
             plot_list.append(before_x)
-            #f.write(",")
-            #f.write(str(before_y))
-            #f.write(" | ")
             plot_list.append(before_y)
 
 
@@ -561,6 +474,7 @@ def main(movie_path):
     #サブプロットで移動量を描画　横軸はフレーム数
     plt.subplot(2,1,2)
     plt.plot(ran_list, dist_list)
+
 
     ##############################################################################
     #メイン処理を終了
@@ -632,6 +546,7 @@ def main(movie_path):
         #print(picturepath)
         plt.savefig(picturepath)
         plt.show()
+
     else:
         print("No Calucurate Data")
 
