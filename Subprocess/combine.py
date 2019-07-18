@@ -22,7 +22,7 @@ print(outtxt)
 
 #txt file から，3行取得
 csv_path = t_path + "/combine.csv"
-with open(csv_path, "w") as csv_f:
+with open(csv_path, "w", newline="") as csv_f:
     writer = csv.writer(csv_f)
 
     #初回書込み
@@ -31,6 +31,10 @@ with open(csv_path, "w") as csv_f:
     for file_path in outtxt:
         #filepathを変換
         real_path = file_path[file_path.rfind("\\")+1:]
+        #print(real_path)
+        real_path = real_path.replace("after-", "")
+        real_path = real_path.replace(".avi", "")
+        real_path = real_path.replace(".txt", "")
         print(real_path)
 
         f = open(file_path)
