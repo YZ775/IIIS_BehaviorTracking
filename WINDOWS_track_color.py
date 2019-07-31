@@ -123,8 +123,8 @@ def main():
     mask_2 = mask_1
     mask_3 = mask_1
 
-    CAP_W = frame.shape[0]
-    CAP_H = frame.shape[1]
+    CAP_W = frame.shape[1]
+    CAP_H = frame.shape[0]
     #print(CAP_W)
     #print(CAP_H )
 
