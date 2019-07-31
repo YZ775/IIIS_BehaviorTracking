@@ -73,6 +73,7 @@ Picture of webcamera will appear,then left click and right click the mouse. This
 Next,Enter "Q"key to start program.
 <br>
 <br>
+Again,Enter "Q"key to stop program.
 
 
 output movie is  
