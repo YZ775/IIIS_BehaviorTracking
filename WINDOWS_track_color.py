@@ -175,14 +175,65 @@ def main():
 
     cv2.destroyAllWindows()
 
+    flag = 1
     while(cap.isOpened()):
 
         ret, frame = cap.read()
 
         mask_3 = CreateMask(frame,centor_hsv,centor_hsv2)
 
-
         area = cv2.countNonZero(mask_3)
+
+        #鹿間 追加事項
+        #前回マスクと今回のマスクの引き算をして．面積を計算 -> 閾値を超えれば重心等の計算を行う
+        #少しだけ隠れていても電圧を出力可能になる
+        #寝ている時は，30%を下回る
+        #少し隠れていても動いているときは，30%をほとんど下回らない
+
+        #よって，距離が0~20?で，かつperが30%以下なら，寝ている判定をして，電圧0vがベストだと思う．
+        if flag == 1:
+            before_mask = mask_3
+            flag = 0
+        if flag == 0:
+            diff = cv2.absdiff(mask_3, before_mask)
+            motion_area = cv2.countNonZero(diff)
+            try:
+                per = motion_area / area * 100
+            except:
+                print("error")
+
+            print("motion_area {}".format(per))
+
+
+        #鹿間追加事項
+        #マスク画像で，最大面積の部分を取得
+        #最大面積部分を少し拡大させた局所領域で，画像処理を行い精度向上と高速化を図れるはず
+        #とりあえず，コメントアウトした．
+        """
+        images,contours, hierarchy = cv2.findContours(mask_3, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        best_area = 0
+        best_label = 0
+        for i in range(0, len(contours)):
+            if len(contours[i]) > 0:
+                new_area = cv2.contourArea(contours[i])
+                if best_area < new_area:
+                    best_area = new_area
+                    best_label = i
+
+        #最大面積部分のROI(局所領域)を取得 値は取得できたけど，x軸なのか，y軸なのかが分からない
+        print(contours[best_label])
+        print("\n")
+        prepro = contours[best_label].max(axis=1)
+        max_xy = prepro.max(axis=1)
+        min_xy = prepro.min(axis=1)
+
+        real_max = max_xy.max()
+        real_min = min_xy.min()
+        print("max {} min {}".format(real_max, real_min))
+        print("best_label:{}, area:{}".format(best_label, best_area))
+        """
+
 
 
         before_x = x
@@ -214,6 +265,8 @@ def main():
         cv2.imshow("Mask",out_frame)
 
         out.write(out_frame)
+
+        before_mask = mask_3
 
 
 
